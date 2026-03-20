@@ -260,19 +260,25 @@ async function downloadJava() {
 }
 
 // Launch Game
-ipcMain.handle('launch-game', async () => {
+ipcMain.handle('launch-game', async (ev, version) => {
   const p = store.get('currentUser');
   if (!p) return { success: false, error: 'Nicht eingeloggt' };
+  const mcVersion = version || '1.21.1';
   try {
-    // Always use our own Java 21 to avoid version issues
+    // Check for custom java path in settings
     let javaPath;
+    const customJava = store.get('settings.javaPath', '');
+    if (customJava && fs.existsSync(customJava)) {
+      javaPath = customJava;
+    }
+    // Otherwise use bundled Java 21
     const bundledJavaw = path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', 'javaw.exe');
     const bundledJava = path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', 'java.exe');
-    if (fs.existsSync(bundledJavaw)) {
+    if (!javaPath && fs.existsSync(bundledJavaw)) {
       javaPath = bundledJavaw;
-    } else if (fs.existsSync(bundledJava)) {
+    } else if (!javaPath && fs.existsSync(bundledJava)) {
       javaPath = bundledJava;
-    } else {
+    } else if (!javaPath) {
       // Download Java 21
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('launch-progress', { type: 'Java 21 wird heruntergeladen...', task: 0, total: 100 });
@@ -291,7 +297,7 @@ ipcMain.handle('launch-game', async () => {
       authorization: Authenticator.getAuth(p.name),
       root: mcRoot,
       javaPath: javaPath,
-      version: { number: '1.21.1', type: 'release' },
+      version: { number: mcVersion, type: 'release' },
       memory: { max: store.get('settings.ram', '4') + 'G', min: '2G' },
       javaArgs: [
         '-XX:+UseG1GC',
@@ -365,6 +371,112 @@ ipcMain.handle('equip-cosmetic', (ev, id) => {
   return { success: true, equipped: eq };
 });
 
-// Settings
-ipcMain.handle('get-settings', () => store.get('settings', { ram: '4' }));
+// ── Modrinth API ──
+function modrinthGet(urlPath) {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    https.get('https://api.modrinth.com/v2' + urlPath, { headers: { 'User-Agent': 'ChibiLauncher/1.0' } }, res => {
+      let d = ''; res.on('data', c => d += c);
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
+    }).on('error', reject);
+  });
+}
+
+ipcMain.handle('search-modrinth', async (ev, type, query) => {
+  try {
+    const facets = JSON.stringify([['project_type:' + type]]);
+    const q = encodeURIComponent(query || '');
+    const data = await modrinthGet(`/search?query=${q}&facets=${encodeURIComponent(facets)}&limit=20`);
+    return data.hits || [];
+  } catch(e) { console.error('Modrinth search error:', e); return []; }
+});
+
+ipcMain.handle('install-modrinth', async (ev, slug, type) => {
+  try {
+    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
+    // Get project versions
+    const versions = await modrinthGet(`/project/${slug}/version`);
+    if (!versions || versions.length === 0) return { success: false, error: 'Keine Version gefunden' };
+
+    const latest = versions[0];
+    const file = latest.files && latest.files[0];
+    if (!file) return { success: false, error: 'Keine Datei gefunden' };
+
+    // Determine install dir
+    let dir;
+    if (type === 'mod') dir = path.join(mcRoot, 'mods');
+    else if (type === 'resourcepack') dir = path.join(mcRoot, 'resourcepacks');
+    else if (type === 'shader') dir = path.join(mcRoot, 'shaderpacks');
+    else dir = path.join(mcRoot, 'mods');
+
+    fs.mkdirSync(dir, { recursive: true });
+    const filePath = path.join(dir, file.filename);
+
+    // Download
+    await downloadFile(file.url, filePath);
+
+    // Track installed
+    const installed = store.get('installed_mods', []);
+    if (!installed.find(m => m.file === file.filename)) {
+      installed.push({ name: slug, file: file.filename, type, dir });
+      store.set('installed_mods', installed);
+    }
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+});
+
+ipcMain.handle('install-chibi-mod', async (ev, slug, name, url) => {
+  try {
+    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
+    const dir = path.join(mcRoot, 'mods');
+    fs.mkdirSync(dir, { recursive: true });
+    const filename = url.split('/').pop();
+    const filePath = path.join(dir, filename);
+    await downloadFile(url, filePath);
+    const installed = store.get('installed_mods', []);
+    if (!installed.find(m => m.file === filename)) {
+      installed.push({ name, file: filename, type: 'mod', dir });
+      store.set('installed_mods', installed);
+    }
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+});
+
+ipcMain.handle('get-installed-mods', () => store.get('installed_mods', []));
+
+ipcMain.handle('remove-mod', (ev, filename) => {
+  try {
+    const installed = store.get('installed_mods', []);
+    const mod = installed.find(m => m.file === filename);
+    if (mod) {
+      const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
+      let dir;
+      if (mod.type === 'resourcepack') dir = path.join(mcRoot, 'resourcepacks');
+      else if (mod.type === 'shader') dir = path.join(mcRoot, 'shaderpacks');
+      else dir = path.join(mcRoot, 'mods');
+      try { fs.unlinkSync(path.join(dir, filename)); } catch(e) {}
+      store.set('installed_mods', installed.filter(m => m.file !== filename));
+    }
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+});
+
+function downloadFile(url, dest) {
+  return new Promise((resolve, reject) => {
+    const mod = url.startsWith('https') ? require('https') : require('http');
+    const doReq = (u) => {
+      mod.get(u, { headers: { 'User-Agent': 'ChibiLauncher/1.0' } }, res => {
+        if (res.statusCode === 301 || res.statusCode === 302) { doReq(res.headers.location); return; }
+        const file = fs.createWriteStream(dest);
+        res.pipe(file);
+        file.on('finish', () => { file.close(); resolve(); });
+        file.on('error', reject);
+      }).on('error', reject);
+    };
+    doReq(url);
+  });
+}
+
+// ── Settings ──
+ipcMain.handle('get-settings', () => store.get('settings', { ram: '4', javaPath: '' }));
 ipcMain.handle('save-settings', (ev, s) => { store.set('settings', s); return true; });

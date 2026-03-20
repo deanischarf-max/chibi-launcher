@@ -50,9 +50,12 @@
         <div><span class="pname" id="pname">Player</span><span class="owner hidden" id="owner">OWNER</span><span class="vip hidden" id="vip">VIP</span></div>
       </div>
       <nav class="nav">
-        <button class="nav-btn active" data-tab="home">Home</button>
-        <button class="nav-btn" data-tab="cosmetics">Cosmetics</button>
-        <button class="nav-btn" data-tab="settings">Einstellungen</button>
+        <button class="nav-btn active" data-tab="home">&#127968; Home</button>
+        <button class="nav-btn" data-tab="mods">&#128230; Mods</button>
+        <button class="nav-btn" data-tab="resourcepacks">&#127912; Resource Packs</button>
+        <button class="nav-btn" data-tab="shaders">&#10024; Shaders</button>
+        <button class="nav-btn" data-tab="cosmetics">&#128081; Cosmetics</button>
+        <button class="nav-btn" data-tab="settings">&#9881; Einstellungen</button>
       </nav>
       <div class="coins-box"><span class="coin-ico">&#129689;</span><span id="coins">0</span></div>
       <button class="btn btn-ghost" id="btn-logout">Abmelden</button>
@@ -64,24 +67,85 @@
         <div class="home">
           <div class="server-card">
             <h2>Willkommen auf Chibi.art!</h2>
-            <div class="server-info">
-              <span class="status-dot"></span> chibi.art:25565
-            </div>
-            <div class="server-meta"><span>Version 1.21.1</span><span>Lobby &rarr; Survival</span></div>
+            <div class="server-info"><span class="status-dot"></span> chibi.art:25565</div>
+            <div class="server-meta"><span>Lobby &rarr; Survival</span></div>
           </div>
-          <div class="equipped-box">
-            <h3>Ausgeruestete Cosmetics</h3>
-            <div class="eq-grid">
-              <div class="eq-slot"><span class="eq-label">Cape</span><span id="sl-cape">Keins</span></div>
-              <div class="eq-slot"><span class="eq-label">Hut</span><span id="sl-hat">Keins</span></div>
-              <div class="eq-slot"><span class="eq-label">Fluegel</span><span id="sl-wings">Keins</span></div>
-              <div class="eq-slot"><span class="eq-label">Aura</span><span id="sl-aura">Keins</span></div>
+          <div class="version-select-box">
+            <h3>Minecraft Version</h3>
+            <div class="version-row">
+              <select id="mc-version">
+                <option value="1.21.4">1.21.4</option>
+                <option value="1.21.3">1.21.3</option>
+                <option value="1.21.2">1.21.2</option>
+                <option value="1.21.1" selected>1.21.1</option>
+                <option value="1.21">1.21</option>
+                <option value="1.20.6">1.20.6</option>
+                <option value="1.20.4">1.20.4</option>
+                <option value="1.20.2">1.20.2</option>
+                <option value="1.20.1">1.20.1</option>
+                <option value="1.20">1.20</option>
+                <option value="1.19.4">1.19.4</option>
+                <option value="1.19.2">1.19.2</option>
+                <option value="1.18.2">1.18.2</option>
+                <option value="1.17.1">1.17.1</option>
+                <option value="1.16.5">1.16.5</option>
+                <option value="1.12.2">1.12.2</option>
+                <option value="1.8.9">1.8.9</option>
+              </select>
+              <select id="mc-loader">
+                <option value="vanilla">Vanilla</option>
+                <option value="fabric">Fabric</option>
+              </select>
             </div>
+          </div>
+          <div class="installed-box">
+            <h3>Installierte Mods (<span id="mod-count">0</span>)</h3>
+            <div id="installed-list" class="installed-list"><span class="dim">Keine Mods installiert</span></div>
           </div>
           <button class="btn-play" id="btn-play">&#9654; SPIELEN</button>
           <div class="play-status hidden" id="play-status"><div class="spinner"></div><span>Minecraft startet...</span></div>
           <div class="error-log hidden" id="error-log"></div>
         </div>
+      </div>
+
+      <!-- Mods -->
+      <div class="tab" id="tab-mods">
+        <div class="browse-header">
+          <h2>Mods</h2>
+          <div class="search-bar">
+            <input type="text" id="mod-search" placeholder="Mods suchen..." autocomplete="off">
+            <button class="btn btn-primary btn-sm" id="mod-search-btn">Suchen</button>
+          </div>
+        </div>
+        <div class="source-tabs">
+          <button class="src-btn active" data-src="modrinth" data-type="mod">Modrinth Mods</button>
+          <button class="src-btn" data-src="chibi" data-type="mod">Chibi Mods</button>
+        </div>
+        <div class="browse-grid" id="mod-grid"><span class="dim">Suche nach Mods oder waehle eine Kategorie...</span></div>
+      </div>
+
+      <!-- Resource Packs -->
+      <div class="tab" id="tab-resourcepacks">
+        <div class="browse-header">
+          <h2>Resource Packs</h2>
+          <div class="search-bar">
+            <input type="text" id="rp-search" placeholder="Resource Packs suchen..." autocomplete="off">
+            <button class="btn btn-primary btn-sm" id="rp-search-btn">Suchen</button>
+          </div>
+        </div>
+        <div class="browse-grid" id="rp-grid"><span class="dim">Suche nach Resource Packs...</span></div>
+      </div>
+
+      <!-- Shaders -->
+      <div class="tab" id="tab-shaders">
+        <div class="browse-header">
+          <h2>Shaders</h2>
+          <div class="search-bar">
+            <input type="text" id="shader-search" placeholder="Shaders suchen..." autocomplete="off">
+            <button class="btn btn-primary btn-sm" id="shader-search-btn">Suchen</button>
+          </div>
+        </div>
+        <div class="browse-grid" id="shader-grid"><span class="dim">Suche nach Shaders...</span></div>
       </div>
 
       <!-- Cosmetics -->
@@ -102,6 +166,8 @@
         <div class="settings">
           <label>RAM Zuweisung</label>
           <select id="set-ram"><option value="2">2 GB</option><option value="4" selected>4 GB</option><option value="6">6 GB</option><option value="8">8 GB</option><option value="12">12 GB</option><option value="16">16 GB</option></select>
+          <label>Java Pfad (leer = automatisch)</label>
+          <input type="text" id="set-java" placeholder="Automatisch (Java 21)" autocomplete="off">
           <button class="btn btn-primary" id="btn-save">Speichern</button>
         </div>
       </div>
