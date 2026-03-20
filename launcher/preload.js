@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   launchGame: (v) => ipcRenderer.invoke('launch-game', v),
   searchModrinth: (type, query) => ipcRenderer.invoke('search-modrinth', type, query),
   installModrinth: (slug, type) => ipcRenderer.invoke('install-modrinth', slug, type),
+  installModpack: (slug) => ipcRenderer.invoke('install-modpack', slug),
   installChibiMod: (slug, name, url) => ipcRenderer.invoke('install-chibi-mod', slug, name, url),
   getInstalledMods: () => ipcRenderer.invoke('get-installed-mods'),
   removeMod: (file) => ipcRenderer.invoke('remove-mod', file),

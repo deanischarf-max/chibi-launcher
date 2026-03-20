@@ -109,8 +109,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.api.onLaunchProgress(p => { if (p.type) { document.getElementById('play-status').innerHTML = '<div class="spinner"></div><span>' + p.type + ' (' + Math.round((p.task / p.total) * 100) + '%)</span>'; } });
 
   // Search buttons
-  document.getElementById('mod-search-btn').onclick = () => searchModrinth('mod', document.getElementById('mod-search').value, 'mod-grid');
+  document.getElementById('mod-search-btn').onclick = () => { if (currentModSource === 'chibi') renderChibiMods(); else searchModrinth('mod', document.getElementById('mod-search').value, 'mod-grid'); };
   document.getElementById('mod-search').onkeydown = e => { if (e.key === 'Enter') document.getElementById('mod-search-btn').click(); };
+  document.getElementById('mp-search-btn').onclick = () => searchModrinth('modpack', document.getElementById('mp-search').value, 'mp-grid');
+  document.getElementById('mp-search').onkeydown = e => { if (e.key === 'Enter') document.getElementById('mp-search-btn').click(); };
   document.getElementById('rp-search-btn').onclick = () => searchModrinth('resourcepack', document.getElementById('rp-search').value, 'rp-grid');
   document.getElementById('rp-search').onkeydown = e => { if (e.key === 'Enter') document.getElementById('rp-search-btn').click(); };
   document.getElementById('shader-search-btn').onclick = () => searchModrinth('shader', document.getElementById('shader-search').value, 'shader-grid');
@@ -124,8 +126,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   profile = await window.api.getProfile();
   if (profile) showMain();
 
-  // Load popular mods on start
+  // Load popular content on start
   searchModrinth('mod', '', 'mod-grid');
+  searchModrinth('modpack', '', 'mp-grid');
   searchModrinth('resourcepack', '', 'rp-grid');
   searchModrinth('shader', '', 'shader-grid');
 });
@@ -154,7 +157,11 @@ async function searchModrinth(type, query, gridId) {
   try {
     const results = await window.api.searchModrinth(type, query);
     if (!results || results.length === 0) { grid.innerHTML = '<span class="dim">Keine Ergebnisse gefunden</span>'; return; }
-    grid.innerHTML = results.map(r => `
+    grid.innerHTML = results.map(r => {
+      const isModpack = type === 'modpack';
+      const btnText = isModpack ? 'Modpack installieren' : 'Installieren';
+      const btnFn = isModpack ? `installModpack('${r.slug}','${esc(r.title)}')` : `installModrinth('${r.slug}','${esc(r.title)}','${type}')`;
+      return `
       <div class="browse-card">
         <img class="browse-icon" src="${r.icon_url || ''}" onerror="this.style.display='none'" alt="">
         <div class="browse-info">
@@ -164,13 +171,14 @@ async function searchModrinth(type, query, gridId) {
             <span>&#11015; ${formatNum(r.downloads)}</span>
             <span>&#9733; ${formatNum(r.follows || 0)}</span>
             <span>${r.author || ''}</span>
+            ${(r.categories || []).slice(0,3).map(c => '<span>'+esc(c)+'</span>').join('')}
           </div>
         </div>
         <div class="browse-actions">
-          <button class="btn-green" onclick="installModrinth('${r.slug}','${esc(r.title)}','${type}')">Installieren</button>
+          <button class="btn-green" onclick="${btnFn}">${btnText}</button>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   } catch (e) { grid.innerHTML = '<span class="dim">Fehler: ' + e + '</span>'; }
 }
 
@@ -192,10 +200,17 @@ function renderChibiMods() {
 }
 
 window.installModrinth = async function (slug, title, type) {
-  toast(title + ' wird installiert...');
+  toast(title + ' wird heruntergeladen...');
   const r = await window.api.installModrinth(slug, type);
-  if (r.success) { toast(title + ' installiert!'); updateInstalledMods(); }
-  else toast('Fehler: ' + r.error);
+  if (r.success) { toast('✓ ' + title + ' installiert!'); updateInstalledMods(); }
+  else toast('✗ ' + title + ': ' + r.error);
+};
+
+window.installModpack = async function (slug, title) {
+  toast(title + ' Modpack wird installiert... (kann dauern)');
+  const r = await window.api.installModpack(slug);
+  if (r.success) { toast('✓ Modpack ' + title + ' installiert! (' + r.count + ' Mods)'); updateInstalledMods(); }
+  else toast('✗ ' + title + ': ' + r.error);
 };
 
 window.installChibiMod = async function (slug, title) {

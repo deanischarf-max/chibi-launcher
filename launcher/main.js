@@ -596,10 +596,23 @@ function modrinthGet(urlPath) {
 
 ipcMain.handle('search-modrinth', async (ev, type, query) => {
   try {
-    const facets = JSON.stringify([['project_type:' + type]]);
+    const facets = [['project_type:' + type]];
     const q = encodeURIComponent(query || '');
-    const data = await modrinthGet(`/search?query=${q}&facets=${encodeURIComponent(facets)}&limit=20`);
-    return data.hits || [];
+    const facetsStr = encodeURIComponent(JSON.stringify(facets));
+    const url = `/search?query=${q}&facets=${facetsStr}&limit=25&index=relevance`;
+    console.log('[Modrinth] Search:', url);
+    const data = await modrinthGet(url);
+    console.log('[Modrinth] Results:', data.total_hits || 0);
+    return (data.hits || []).map(h => ({
+      slug: h.slug,
+      title: h.title,
+      description: h.description,
+      downloads: h.downloads,
+      follows: h.follows,
+      icon_url: h.icon_url || '',
+      author: h.author || '',
+      categories: h.categories || [],
+    }));
   } catch(e) { console.error('Modrinth search error:', e); return []; }
 });
 
@@ -663,6 +676,53 @@ ipcMain.handle('install-chibi-mod', async (ev, slug, name, url) => {
       store.set('installed_mods', installed);
     }
     return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+});
+
+ipcMain.handle('install-modpack', async (ev, slug) => {
+  try {
+    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
+    // Get modpack info
+    const versions = await modrinthGet(`/project/${slug}/version`);
+    if (!versions || versions.length === 0) return { success: false, error: 'Keine Version gefunden' };
+    const latest = versions[0];
+
+    // Get dependencies (mods in the modpack)
+    const deps = latest.dependencies || [];
+    let installed = 0;
+
+    // Install each dependency
+    for (const dep of deps) {
+      if (dep.project_id && dep.dependency_type === 'required') {
+        try {
+          const depVersions = await modrinthGet(`/project/${dep.project_id}/version`);
+          if (depVersions && depVersions.length > 0) {
+            const depFile = (depVersions[0].files.find(f => f.primary)) || depVersions[0].files[0];
+            if (depFile) {
+              const dir = path.join(mcRoot, 'mods');
+              fs.mkdirSync(dir, { recursive: true });
+              await downloadFile(depFile.url, path.join(dir, depFile.filename));
+              const mods = store.get('installed_mods', []);
+              if (!mods.find(m => m.file === depFile.filename)) {
+                mods.push({ name: dep.project_id, file: depFile.filename, type: 'mod', dir });
+                store.set('installed_mods', mods);
+              }
+              installed++;
+            }
+          }
+        } catch(e) { console.error('Dep install error:', e); }
+      }
+    }
+
+    // Also download the modpack mrpack file if available
+    const packFile = (latest.files.find(f => f.primary)) || latest.files[0];
+    if (packFile) {
+      const packDir = path.join(mcRoot, 'modpacks');
+      fs.mkdirSync(packDir, { recursive: true });
+      await downloadFile(packFile.url, path.join(packDir, packFile.filename));
+    }
+
+    return { success: true, count: installed };
   } catch(e) { return { success: false, error: e.message }; }
 });
 

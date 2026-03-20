@@ -52,6 +52,7 @@
       <nav class="nav">
         <button class="nav-btn active" data-tab="home">&#127968; Home</button>
         <button class="nav-btn" data-tab="mods">&#128230; Mods</button>
+        <button class="nav-btn" data-tab="modpacks">&#128230; Modpacks</button>
         <button class="nav-btn" data-tab="resourcepacks">&#127912; Resource Packs</button>
         <button class="nav-btn" data-tab="shaders">&#10024; Shaders</button>
         <button class="nav-btn" data-tab="cosmetics">&#128081; Cosmetics</button>
@@ -136,6 +137,18 @@
           <button class="src-btn" data-src="chibi" data-type="mod">Chibi Mods</button>
         </div>
         <div class="browse-grid" id="mod-grid"><span class="dim">Suche nach Mods oder waehle eine Kategorie...</span></div>
+      </div>
+
+      <!-- Modpacks -->
+      <div class="tab" id="tab-modpacks">
+        <div class="browse-header">
+          <h2>Modpacks</h2>
+          <div class="search-bar">
+            <input type="text" id="mp-search" placeholder="Modpacks suchen..." autocomplete="off">
+            <button class="btn btn-primary btn-sm" id="mp-search-btn">Suchen</button>
+          </div>
+        </div>
+        <div class="browse-grid" id="mp-grid"><span class="dim">Suche nach Modpacks oder lade beliebte Modpacks...</span></div>
       </div>
 
       <!-- Resource Packs -->
