@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -130,6 +131,18 @@ function createWindow() {
 app.whenReady().then(() => {
   store = new SimpleStore();
   createWindow();
+
+  // Auto-Update
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('update-available', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Update wird heruntergeladen...');
+  });
+  autoUpdater.on('update-downloaded', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Update bereit! Startet beim naechsten Neustart.');
+  });
+  autoUpdater.on('error', (err) => console.error('Update error:', err));
+  setTimeout(() => { try { autoUpdater.checkForUpdates(); } catch(e) {} }, 3000);
 });
 app.on('window-all-closed', () => app.quit());
 

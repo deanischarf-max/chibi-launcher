@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('api', {
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (s) => ipcRenderer.invoke('save-settings', s),
   onCoinsUpdated: (cb) => ipcRenderer.on('coins-updated', (_, d) => cb(d)),
+  onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_, d) => cb(d)),
   onLaunchError: (cb) => ipcRenderer.on('launch-error', (_, d) => cb(d)),
   onLaunchProgress: (cb) => ipcRenderer.on('launch-progress', (_, d) => cb(d)),
 });

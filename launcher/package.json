@@ -12,6 +12,7 @@
   "author": "chibi.art",
   "license": "MIT",
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "minecraft-launcher-core": "^3.18.1"
   },
   "devDependencies": {
@@ -30,13 +31,25 @@
     "win": {
       "target": [
         {
-          "target": "dir",
+          "target": "nsis",
           "arch": ["x64"]
         }
       ]
     },
     "linux": {
       "target": "AppImage"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "deanischarf-max",
+      "repo": "chibi-launcher"
     }
   }
 }

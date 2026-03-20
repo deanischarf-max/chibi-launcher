@@ -73,6 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.api.onCoinsUpdated(d => { updateCoins(d.coins); if(d.earned>0) toast('+'+d.earned+' Coins!'); document.getElementById('btn-play').classList.remove('hidden'); document.getElementById('play-status').classList.add('hidden'); });
   window.api.onLaunchError(e => { document.getElementById('btn-play').classList.remove('hidden'); document.getElementById('play-status').classList.add('hidden'); document.getElementById('error-log').textContent=e; document.getElementById('error-log').classList.remove('hidden'); });
   window.api.onLaunchProgress(p => { if(p.type) document.getElementById('play-status').innerHTML='<div class="spinner"></div><span>'+p.type+' ('+Math.round((p.task/p.total)*100)+'%)</span>'; });
+  window.api.onUpdateStatus(msg => toast(msg));
 
   // ── Browse Tab ──
   document.querySelectorAll('.src-btn').forEach(b => b.onclick = () => { document.querySelectorAll('.src-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); browseType=b.dataset.btype; searchBrowse(''); });
