@@ -56,6 +56,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btn-logout').onclick = async () => { await window.api.logout(); profile = null; document.getElementById('screen-main').classList.add('hidden'); document.getElementById('screen-login').classList.remove('hidden'); };
 
+  // Microsoft Account
+  document.getElementById('btn-mc-login').onclick = async () => {
+    const btn = document.getElementById('btn-mc-login');
+    btn.textContent = 'Anmelden...'; btn.disabled = true;
+    const r = await window.api.mcLogin();
+    if (r.success) {
+      document.getElementById('mc-account-status').classList.add('hidden');
+      document.getElementById('mc-account-name').textContent = '✓ ' + r.name;
+      document.getElementById('mc-account-name').classList.remove('hidden');
+      btn.textContent = 'Abmelden';
+      btn.onclick = async () => { await window.api.mcLogout(); updateMcAccount(); };
+      toast('Microsoft Account verknuepft: ' + r.name);
+    } else {
+      toast('Fehler: ' + r.error);
+      btn.textContent = 'Microsoft Account verknuepfen'; btn.disabled = false;
+    }
+  };
+
   // Play
   document.getElementById('btn-play').onclick = async () => {
     document.getElementById('btn-play').classList.add('hidden');
@@ -104,7 +122,7 @@ async function showMain() {
   else { document.getElementById('vip').classList.add('hidden'); document.getElementById('owner').classList.add('hidden'); }
   cosmetics = await window.api.getCosmetics(); ownedCosmetics = await window.api.getOwnedCosmetics(); equippedCosmetics = await window.api.getEquippedCosmetics();
   updateCoins(await window.api.getCoins()); renderCosmetics();
-  updateInstalledMods();
+  updateInstalledMods(); updateMcAccount();
 }
 
 function updateCoins(n) { document.getElementById('coins').textContent = n.toLocaleString('de-DE'); document.getElementById('shop-coins').textContent = n.toLocaleString('de-DE'); }
@@ -202,6 +220,29 @@ window.cosClick = async function (id) {
   if (!ownedCosmetics.includes(id)) { const r = await window.api.buyCosmetic(id); if (r.success) { ownedCosmetics.push(id); updateCoins(r.coins); toast('Gekauft!'); } else { toast(r.error); return; } }
   const r = await window.api.equipCosmetic(id); if (r.success) { equippedCosmetics = r.equipped; renderCosmetics(); const c = cosmetics.find(x => x.id === id); toast(equippedCosmetics[c.category] === id ? c.name + ' ausgeruestet!' : c.name + ' abgelegt.'); }
 };
+
+async function updateMcAccount() {
+  const acc = await window.api.getMcAccount();
+  const btn = document.getElementById('btn-mc-login');
+  if (acc && acc.name) {
+    document.getElementById('mc-account-status').classList.add('hidden');
+    document.getElementById('mc-account-name').textContent = '✓ ' + acc.name;
+    document.getElementById('mc-account-name').classList.remove('hidden');
+    btn.textContent = 'Abmelden';
+    btn.onclick = async () => { await window.api.mcLogout(); updateMcAccount(); };
+  } else {
+    document.getElementById('mc-account-status').classList.remove('hidden');
+    document.getElementById('mc-account-name').classList.add('hidden');
+    btn.textContent = 'Microsoft Account verknuepfen';
+    btn.disabled = false;
+    btn.onclick = async () => {
+      btn.textContent = 'Anmelden...'; btn.disabled = true;
+      const r = await window.api.mcLogin();
+      if (r.success) { toast('Verknuepft: ' + r.name); updateMcAccount(); }
+      else { toast('Fehler: ' + r.error); btn.textContent = 'Microsoft Account verknuepfen'; btn.disabled = false; }
+    };
+  }
+}
 
 function toast(msg) { const t = document.getElementById('toast'); document.getElementById('toast-msg').textContent = msg; t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000); }
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }

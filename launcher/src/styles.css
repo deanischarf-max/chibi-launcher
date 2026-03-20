@@ -87,6 +87,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .installed-tag .remove{cursor:pointer;color:var(--muted);font-size:14px}
 .installed-tag .remove:hover{color:#ff6b6b}
 
+.mc-account-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mc-account-name{color:var(--green);font-weight:700;font-size:14px}
 .btn-play{background:linear-gradient(135deg,var(--accent),#533483);color:#fff;border:none;padding:16px;font-size:20px;font-weight:800;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:.3s;letter-spacing:2px;text-transform:uppercase;width:100%}
 .btn-play:hover{transform:translateY(-3px);box-shadow:0 8px 30px var(--accent-g)}
 .play-status{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px;color:var(--dim);font-size:14px}

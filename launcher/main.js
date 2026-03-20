@@ -136,6 +136,102 @@ ipcMain.handle('get-profile', () => {
 
 ipcMain.handle('logout', () => { store.delete('currentUser'); return true; });
 
+// ── Microsoft Auth for Minecraft ──
+const MS_CLIENT_ID = '00000000402b5328';
+const MS_REDIRECT = 'https://login.live.com/oauth20_desktop.srf';
+
+ipcMain.handle('mc-login', async () => {
+  try {
+    const authUrl = `https://login.live.com/oauth20_authorize.srf?client_id=${MS_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(MS_REDIRECT)}&scope=XboxLive.signin%20offline_access&prompt=select_account`;
+
+    const code = await new Promise((resolve, reject) => {
+      const authWin = new BrowserWindow({ width: 520, height: 700, parent: mainWindow, modal: true, show: false, autoHideMenuBar: true, webPreferences: { contextIsolation: true, nodeIntegration: false } });
+      authWin.loadURL(authUrl);
+      authWin.once('ready-to-show', () => authWin.show());
+
+      const handleUrl = (url) => {
+        if (!url.startsWith(MS_REDIRECT)) return false;
+        const u = new URL(url);
+        const c = u.searchParams.get('code');
+        const e = u.searchParams.get('error');
+        if (e) { authWin.destroy(); reject(new Error(e)); return true; }
+        if (c) { authWin.destroy(); resolve(c); return true; }
+        return false;
+      };
+
+      authWin.webContents.on('will-redirect', (ev, url) => handleUrl(url));
+      authWin.webContents.on('will-navigate', (ev, url) => handleUrl(url));
+      authWin.on('closed', () => reject(new Error('Fenster geschlossen')));
+    });
+
+    // Exchange code for tokens
+    const msToken = await httpPost('login.live.com', '/oauth20_token.srf',
+      `client_id=${MS_CLIENT_ID}&code=${code}&grant_type=authorization_code&redirect_uri=${encodeURIComponent(MS_REDIRECT)}`,
+      'application/x-www-form-urlencoded');
+
+    const xblToken = await httpPostJson('user.auth.xboxlive.com', '/user/authenticate', {
+      Properties: { AuthMethod: 'RPS', SiteName: 'user.auth.xboxlive.com', RpsTicket: 'd=' + msToken.access_token },
+      RelyingParty: 'http://auth.xboxlive.com', TokenType: 'JWT'
+    });
+
+    const xstsToken = await httpPostJson('xsts.auth.xboxlive.com', '/xsts/authorize', {
+      Properties: { SandboxId: 'RETAIL', UserTokens: [xblToken.Token] },
+      RelyingParty: 'rp://api.minecraftservices.com/', TokenType: 'JWT'
+    });
+
+    const uhs = xstsToken.DisplayClaims.xui[0].uhs;
+    const mcToken = await httpPostJson('api.minecraftservices.com', '/authentication/login_with_xbox', {
+      identityToken: 'XBL3.0 x=' + uhs + ';' + xstsToken.Token
+    });
+
+    const mcProfile = await httpGet('api.minecraftservices.com', '/minecraft/profile', mcToken.access_token);
+
+    const mcAccount = { name: mcProfile.name, uuid: mcProfile.id, accessToken: mcToken.access_token };
+    store.set('mcAccount', mcAccount);
+    return { success: true, name: mcProfile.name };
+  } catch(e) {
+    console.error('MC Login error:', e);
+    return { success: false, error: e.message || 'Login fehlgeschlagen' };
+  }
+});
+
+ipcMain.handle('get-mc-account', () => {
+  const acc = store.get('mcAccount');
+  return acc ? { name: acc.name } : null;
+});
+
+ipcMain.handle('mc-logout', () => { store.delete('mcAccount'); return true; });
+
+function httpPost(host, urlPath, body, contentType) {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    const req = https.request({ host, path: urlPath, method: 'POST', headers: { 'Content-Type': contentType, 'Content-Length': Buffer.byteLength(body) } }, res => {
+      let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(new Error('Server-Antwort ungueltig')); } });
+    });
+    req.on('error', reject); req.write(body); req.end();
+  });
+}
+
+function httpPostJson(host, urlPath, body) {
+  const j = JSON.stringify(body);
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    const req = https.request({ host, path: urlPath, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(j), Accept: 'application/json' } }, res => {
+      let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(new Error('Server-Antwort ungueltig')); } });
+    });
+    req.on('error', reject); req.write(j); req.end();
+  });
+}
+
+function httpGet(host, urlPath, token) {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    https.get({ host, path: urlPath, headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } }, res => {
+      let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(new Error('Server-Antwort ungueltig')); } });
+    }).on('error', reject);
+  });
+}
+
 // Find Java - check EVERYWHERE including Minecraft's own bundled Java
 function findJava() {
   const { execSync } = require('child_process');
@@ -320,8 +416,24 @@ ipcMain.handle('launch-game', async (ev, version) => {
     const { Client, Authenticator } = require('minecraft-launcher-core');
     const launcher = new Client();
     const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
+
+    // Use Microsoft account if linked, otherwise offline
+    const mcAccount = store.get('mcAccount');
+    let auth;
+    if (mcAccount && mcAccount.accessToken) {
+      auth = {
+        access_token: mcAccount.accessToken,
+        client_token: mcAccount.uuid,
+        uuid: mcAccount.uuid,
+        name: mcAccount.name,
+        user_properties: '{}',
+      };
+    } else {
+      auth = Authenticator.getAuth(p.name);
+    }
+
     const opts = {
-      authorization: Authenticator.getAuth(p.name),
+      authorization: auth,
       root: mcRoot,
       javaPath: javaPath,
       version: { number: mcVersion, type: 'release' },
