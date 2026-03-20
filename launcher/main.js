@@ -148,6 +148,20 @@ ipcMain.handle('launch-game', async () => {
       root: path.join(app.getPath('appData'), '.chibi-minecraft'),
       version: { number: '1.21.1', type: 'release' },
       memory: { max: store.get('settings.ram', '4') + 'G', min: '2G' },
+      javaArgs: [
+        '-XX:+UseG1GC',
+        '-XX:+ParallelRefProcEnabled',
+        '-XX:G1HeapRegionSize=8M',
+        '-XX:MaxGCPauseMillis=50',
+        '-XX:+UnlockExperimentalVMOptions',
+        '-XX:+DisableExplicitGC',
+        '-XX:+AlwaysPreTouch',
+        '-XX:G1NewSizePercent=30',
+        '-XX:G1MaxNewSizePercent=40',
+        '-XX:G1ReservePercent=20',
+        '-Dfml.ignorePatchDiscrepancies=true',
+        '-Dfml.ignoreInvalidMinecraftCertificates=true',
+      ],
       server: { host: 'chibi.art', port: '25565' },
     };
     store.set(`session_start_${p.name}`, Date.now());
