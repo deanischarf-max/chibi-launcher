@@ -141,10 +141,10 @@ ipcMain.handle('launch-game', async () => {
   const p = store.get('currentUser');
   if (!p) return { success: false, error: 'Nicht eingeloggt' };
   try {
-    const { Client } = require('minecraft-launcher-core');
+    const { Client, Authenticator } = require('minecraft-launcher-core');
     const launcher = new Client();
     const opts = {
-      authorization: { access_token: '0', client_token: '0', uuid: '0', name: p.name, user_properties: '{}' },
+      authorization: Authenticator.getAuth(p.name),
       root: path.join(app.getPath('appData'), '.chibi-minecraft'),
       version: { number: '1.21.1', type: 'release' },
       memory: { max: store.get('settings.ram', '4') + 'G', min: '2G' },
@@ -166,7 +166,15 @@ ipcMain.handle('launch-game', async () => {
     };
     store.set(`session_start_${p.name}`, Date.now());
     launcher.launch(opts);
-    launcher.on('error', (e) => console.error('[MC Error]', e));
+    launcher.on('debug', (e) => console.log('[MC]', e));
+    launcher.on('data', (e) => console.log('[MC Data]', e));
+    launcher.on('error', (e) => {
+      console.error('[MC Error]', e);
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-error', String(e));
+    });
+    launcher.on('progress', (e) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', e);
+    });
     launcher.on('close', () => {
       const start = store.get(`session_start_${p.name}`);
       if (start) {

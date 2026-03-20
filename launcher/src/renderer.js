@@ -54,6 +54,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
   // Coins event
   window.api.onCoinsUpdated(d=>{updateCoins(d.coins);if(d.earned>0)toast('+'+d.earned+' Coins! ('+d.minutes+' Min.)');document.getElementById('btn-play').classList.remove('hidden');document.getElementById('play-status').classList.add('hidden');});
 
+  // Launch events
+  window.api.onLaunchError(e=>{toast('Fehler: '+e);document.getElementById('btn-play').classList.remove('hidden');document.getElementById('play-status').classList.add('hidden');});
+  window.api.onLaunchProgress(p=>{if(p.type){document.getElementById('play-status').innerHTML='<div class="spinner"></div><span>'+p.type+' ('+Math.round((p.task/p.total)*100)+'%)</span>';}});
+
   // Settings
   document.getElementById('btn-save').onclick=async()=>{await window.api.saveSettings({ram:document.getElementById('set-ram').value});toast('Gespeichert!');};
   const s=await window.api.getSettings();if(s.ram)document.getElementById('set-ram').value=s.ram;
