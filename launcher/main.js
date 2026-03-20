@@ -207,26 +207,46 @@ async function downloadJava() {
           try {
             const { execSync } = require('child_process');
             fs.mkdirSync(javaDir, { recursive: true });
-            execSync(`powershell -Command "Expand-Archive -Force '${zipPath}' '${javaDir}'"`, { timeout: 120000 });
-            // Find the extracted folder (it has a version name)
-            const dirs = fs.readdirSync(javaDir).filter(d => fs.statSync(path.join(javaDir, d)).isDirectory());
+            // Try tar first (Windows 10+), fallback to PowerShell
+            try {
+              execSync(`tar -xf "${zipPath}" -C "${javaDir}"`, { timeout: 120000, stdio: 'pipe' });
+            } catch(tarErr) {
+              try {
+                execSync(`powershell -NoProfile -Command "Expand-Archive -Force -Path '${zipPath}' -DestinationPath '${javaDir}'"`, { timeout: 120000, stdio: 'pipe' });
+              } catch(psErr) {
+                reject(new Error('Entpacken fehlgeschlagen. Bitte installiere Java 21 manuell: https://adoptium.net'));
+                return;
+              }
+            }
+            // Find extracted subfolder and move contents up
+            const dirs = fs.readdirSync(javaDir).filter(d => {
+              try { return fs.statSync(path.join(javaDir, d)).isDirectory() && d.startsWith('jdk'); } catch(e) { return false; }
+            });
             if (dirs.length > 0) {
               const extractedDir = path.join(javaDir, dirs[0]);
-              // Move contents up
               const items = fs.readdirSync(extractedDir);
               for (const item of items) {
-                fs.renameSync(path.join(extractedDir, item), path.join(javaDir, item));
+                const src = path.join(extractedDir, item);
+                const dst = path.join(javaDir, item);
+                try { fs.renameSync(src, dst); } catch(e) {
+                  // If rename fails (cross-device), copy
+                  execSync(process.platform === 'win32' ? `xcopy /E /I /Y "${src}" "${dst}"` : `cp -r "${src}" "${dst}"`, { stdio: 'pipe' });
+                }
               }
-              fs.rmdirSync(extractedDir);
+              try { fs.rmSync(extractedDir, { recursive: true }); } catch(e) {}
             }
-            fs.unlinkSync(zipPath);
-            if (fs.existsSync(javawPath)) {
-              resolve(javawPath);
-            } else {
-              // Try java.exe instead
+            try { fs.unlinkSync(zipPath); } catch(e) {}
+            // Find java executable
+            if (fs.existsSync(javawPath)) resolve(javawPath);
+            else {
               const javaExe = path.join(javaDir, 'bin', 'java.exe');
               if (fs.existsSync(javaExe)) resolve(javaExe);
-              else reject(new Error('Java konnte nicht entpackt werden'));
+              else {
+                // List what we got for debugging
+                let contents = '';
+                try { contents = fs.readdirSync(javaDir).join(', '); } catch(e) {}
+                reject(new Error('Java bin nicht gefunden. Ordnerinhalt: ' + contents));
+              }
             }
           } catch(e) {
             reject(new Error('Java entpacken fehlgeschlagen: ' + e.message));
