@@ -166,8 +166,9 @@ ipcMain.handle('launch-game', async () => {
     };
     store.set(`session_start_${p.name}`, Date.now());
     launcher.launch(opts);
-    launcher.on('debug', (e) => console.log('[MC]', e));
-    launcher.on('data', (e) => console.log('[MC Data]', e));
+    let lastLines = [];
+    launcher.on('debug', (e) => { console.log('[MC]', e); lastLines.push(String(e)); if(lastLines.length>50) lastLines.shift(); });
+    launcher.on('data', (e) => { console.log('[MC Data]', e); lastLines.push(String(e)); if(lastLines.length>50) lastLines.shift(); });
     launcher.on('error', (e) => {
       console.error('[MC Error]', e);
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-error', String(e));
@@ -175,7 +176,12 @@ ipcMain.handle('launch-game', async () => {
     launcher.on('progress', (e) => {
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', e);
     });
-    launcher.on('close', () => {
+    launcher.on('close', (code) => {
+      // If crashed, send last log lines to renderer
+      if (code !== 0 && mainWindow && !mainWindow.isDestroyed()) {
+        const errorLog = lastLines.slice(-15).join('\n');
+        mainWindow.webContents.send('launch-error', 'Minecraft beendet (Code ' + code + ')\n' + errorLog);
+      }
       const start = store.get(`session_start_${p.name}`);
       if (start) {
         const mins = Math.floor((Date.now() - start) / 60000);

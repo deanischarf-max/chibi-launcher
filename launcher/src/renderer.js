@@ -55,7 +55,14 @@ document.addEventListener('DOMContentLoaded',async()=>{
   window.api.onCoinsUpdated(d=>{updateCoins(d.coins);if(d.earned>0)toast('+'+d.earned+' Coins! ('+d.minutes+' Min.)');document.getElementById('btn-play').classList.remove('hidden');document.getElementById('play-status').classList.add('hidden');});
 
   // Launch events
-  window.api.onLaunchError(e=>{toast('Fehler: '+e);document.getElementById('btn-play').classList.remove('hidden');document.getElementById('play-status').classList.add('hidden');});
+  window.api.onLaunchError(e=>{
+    document.getElementById('btn-play').classList.remove('hidden');
+    document.getElementById('play-status').classList.add('hidden');
+    const log=document.getElementById('error-log');
+    log.textContent=e;
+    log.classList.remove('hidden');
+    toast('Minecraft ist abgestuerzt');
+  });
   window.api.onLaunchProgress(p=>{if(p.type){document.getElementById('play-status').innerHTML='<div class="spinner"></div><span>'+p.type+' ('+Math.round((p.task/p.total)*100)+'%)</span>';}});
 
   // Settings

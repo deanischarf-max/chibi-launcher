@@ -129,4 +129,5 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);padding:12px 24px;border-radius:var(--r);font-size:14px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,.3);z-index:2000;animation:toastIn .3s ease}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
+.error-log{background:rgba(255,40,40,.1);border:1px solid rgba(255,40,40,.3);border-radius:var(--rs);padding:14px;font-size:11px;color:#ff6b6b;font-family:monospace;white-space:pre-wrap;max-height:200px;overflow-y:auto;word-break:break-all;line-height:1.5}
 ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:0 0}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
