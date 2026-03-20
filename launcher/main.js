@@ -129,10 +129,6 @@ function createWindow() {
 
 app.whenReady().then(() => {
   store = new SimpleStore();
-  // Ensure FreezingDean account exists with correct password
-  const accounts = store.get('accounts', {});
-  accounts['freezingdean'] = { username: 'FreezingDean', password: hashPassword('94BnD6ACT9s6rRgTBgeN9hiHmENrQrKX'), createdAt: Date.now() };
-  store.set('accounts', accounts);
   createWindow();
 });
 app.on('window-all-closed', () => app.quit());
@@ -167,30 +163,10 @@ ipcMain.handle('register', (ev, username, password) => {
   } catch(e) { return { success: false, error: 'Registrierung fehlgeschlagen' }; }
 });
 
-// Hardcoded accounts (checked before store)
-const HARDCODED_ACCOUNTS = {
-  'freezingdean': { username: 'FreezingDean', password: '94BnD6ACT9s6rRgTBgeN9hiHmENrQrKX' },
-};
-
 // Login
 ipcMain.handle('login', (ev, username, password) => {
   try {
     if (!username || !password) return { success: false, error: 'Benutzername und Passwort eingeben' };
-
-    // Check hardcoded accounts first
-    const hardcoded = HARDCODED_ACCOUNTS[username.toLowerCase()];
-    if (hardcoded) {
-      if (password !== hardcoded.password) return { success: false, error: 'Falsches Passwort' };
-      const name = hardcoded.username;
-      const isVIP = VIP_USERS.includes(name);
-      const isOwner = OWNER_USERS.includes(name);
-      store.set('currentUser', { name });
-      if (isVIP || isOwner) store.set(`owned_${name}`, COSMETICS_CATALOG.map(c => c.id));
-      if (isOwner) store.set(`coins_${name}`, 999999);
-      else if (!store.has(`coins_${name}`)) store.set(`coins_${name}`, isVIP ? 99999 : 0);
-      if (!store.has(`equipped_${name}`)) store.set(`equipped_${name}`, {});
-      return { success: true, profile: { name, isVIP, isOwner } };
-    }
 
     const accounts = store.get('accounts', {});
     const account = accounts[username.toLowerCase()];
