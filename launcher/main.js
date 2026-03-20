@@ -464,11 +464,98 @@ async function downloadJava() {
   });
 }
 
-// Launch Game
-ipcMain.handle('launch-game', async (ev, version) => {
+// ── Instanzen ──
+ipcMain.handle('create-instance', (ev, name, version, loader) => {
+  try {
+    const instances = store.get('instances', []);
+    const id = 'inst_' + Date.now();
+    const inst = { id, name, version, loader, mods: [], resourcepacks: [], shaders: [], createdAt: Date.now() };
+    instances.push(inst);
+    store.set('instances', instances);
+    // Create instance directories
+    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', id);
+    fs.mkdirSync(path.join(mcRoot, 'mods'), { recursive: true });
+    fs.mkdirSync(path.join(mcRoot, 'resourcepacks'), { recursive: true });
+    fs.mkdirSync(path.join(mcRoot, 'shaderpacks'), { recursive: true });
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+});
+
+ipcMain.handle('get-instances', () => store.get('instances', []));
+
+ipcMain.handle('delete-instance', (ev, id) => {
+  const instances = store.get('instances', []).filter(i => i.id !== id);
+  store.set('instances', instances);
+  // Delete files
+  const dir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', id);
+  try { fs.rmSync(dir, { recursive: true, force: true }); } catch(e) {}
+  return { success: true };
+});
+
+ipcMain.handle('add-to-instance', async (ev, instId, slug, type) => {
+  try {
+    const instances = store.get('instances', []);
+    const inst = instances.find(i => i.id === instId);
+    if (!inst) return { success: false, error: 'Instanz nicht gefunden' };
+
+    // Get file from Modrinth
+    let versions;
+    try { versions = await modrinthGet(`/project/${slug}/version?game_versions=["${inst.version}"]`); } catch(e) { versions = null; }
+    if (!versions || versions.length === 0) versions = await modrinthGet(`/project/${slug}/version`);
+    if (!versions || versions.length === 0) return { success: false, error: 'Keine Version gefunden' };
+
+    const latest = versions[0];
+    const file = (latest.files.find(f => f.primary)) || latest.files[0];
+    if (!file) return { success: false, error: 'Keine Datei' };
+
+    // Download to instance dir
+    let subdir;
+    if (type === 'mod') subdir = 'mods';
+    else if (type === 'resourcepack') subdir = 'resourcepacks';
+    else if (type === 'shader') subdir = 'shaderpacks';
+    else subdir = 'mods';
+
+    const instDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, subdir);
+    fs.mkdirSync(instDir, { recursive: true });
+    await downloadFile(file.url, path.join(instDir, file.filename));
+
+    // Track in instance
+    const list = type === 'resourcepack' ? 'resourcepacks' : type === 'shader' ? 'shaders' : 'mods';
+    if (!inst[list]) inst[list] = [];
+    if (!inst[list].find(m => m.file === file.filename)) {
+      inst[list].push({ name: slug, file: file.filename });
+    }
+    store.set('instances', instances);
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+});
+
+ipcMain.handle('remove-from-instance', (ev, instId, filename, type) => {
+  const instances = store.get('instances', []);
+  const inst = instances.find(i => i.id === instId);
+  if (!inst) return { success: false, error: 'Nicht gefunden' };
+  const list = type === 'resourcepack' ? 'resourcepacks' : type === 'shader' ? 'shaders' : 'mods';
+  const subdir = type === 'resourcepack' ? 'resourcepacks' : type === 'shader' ? 'shaderpacks' : 'mods';
+  inst[list] = (inst[list] || []).filter(m => m.file !== filename);
+  store.set('instances', instances);
+  try { fs.unlinkSync(path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, subdir, filename)); } catch(e) {}
+  return { success: true };
+});
+
+// Launch Instance
+ipcMain.handle('launch-instance', async (ev, instId) => {
+  const instances = store.get('instances', []);
+  const inst = instances.find(i => i.id === instId);
+  if (!inst) return { success: false, error: 'Instanz nicht gefunden' };
   const p = store.get('currentUser');
   if (!p) return { success: false, error: 'Nicht eingeloggt' };
-  const mcVersion = version || '1.21.1';
+  const version = inst.version;
+  // This calls the same launch logic
+  return await doLaunchGame(p, version, instId);
+});
+
+// Keep old handler for compatibility
+async function doLaunchGame(p, mcVersion, instId) {
   try {
     // Find Java
     const customJava = store.get('settings.javaPath', '');
@@ -489,6 +576,14 @@ ipcMain.handle('launch-game', async (ev, version) => {
     const { Client, Authenticator } = require('minecraft-launcher-core');
     const launcher = new Client();
     const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
+
+    // If launching from instance, set up overrides for mods/resourcepacks/shaders
+    const overrides = {};
+    if (instId) {
+      const instDir = path.join(mcRoot, 'instances', instId);
+      overrides.gameDirectory = instDir;
+      // Copy version files will be in shared root, but game dir is per-instance
+    }
 
     // Use Microsoft account if linked, otherwise offline
     const mcAccount = store.get('mcAccount');
@@ -519,6 +614,7 @@ ipcMain.handle('launch-game', async (ev, version) => {
         '-XX:+AlwaysPreTouch',
       ],
       server: { host: 'chibi.art', port: '25565' },
+      overrides,
     };
 
     let lastLines = [];
@@ -555,6 +651,12 @@ ipcMain.handle('launch-game', async (ev, version) => {
 
     return { success: true };
   } catch(e) { return { success: false, error: e.message || 'Start fehlgeschlagen' }; }
+}
+
+ipcMain.handle('launch-game', async (ev, version) => {
+  const p = store.get('currentUser');
+  if (!p) return { success: false, error: 'Nicht eingeloggt' };
+  return await doLaunchGame(p, version || '1.21.1', null);
 });
 
 // Cosmetics

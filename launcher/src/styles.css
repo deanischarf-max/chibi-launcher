@@ -138,5 +138,49 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .settings{max-width:350px;display:flex;flex-direction:column;gap:12px;margin-top:14px}
 .settings label{font-size:13px;color:var(--dim)}
 
+/* Instances */
+.tab-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.instance-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.instance-empty{text-align:center;padding:40px;color:var(--dim)}
+.instance-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:18px;cursor:pointer;transition:.2s;position:relative}
+.instance-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.instance-card .inst-name{font-weight:700;font-size:15px;margin-bottom:6px}
+.instance-card .inst-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.instance-card .inst-mods{font-size:12px;color:var(--dim)}
+.instance-card .inst-play-btn{background:var(--accent);color:#fff;border:none;padding:8px 20px;border-radius:var(--rs);font-weight:700;cursor:pointer;width:100%;margin-top:10px;font-size:13px;transition:.2s}
+.instance-card .inst-play-btn:hover{background:#ff5a75}
+.instance-card .inst-delete{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px}
+.instance-card .inst-delete:hover{color:#ff6b6b}
+.pill{padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;background:var(--bg4);border:1px solid var(--border);color:var(--dim)}
+
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:500;display:flex;align-items:center;justify-content:center}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;width:420px;max-width:90%}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-header h3{font-size:1.1rem}
+.modal-close{background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer}
+.modal-close:hover{color:var(--txt)}
+.modal-body{display:flex;flex-direction:column;gap:10px}
+.modal-body label{font-size:13px;color:var(--dim)}
+.modal-body input,.modal-body select{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);color:var(--txt);padding:10px 14px;font-size:14px;outline:0}
+.modal-body input:focus,.modal-body select:focus{border-color:var(--accent)}
+
+/* Instance Detail */
+.inst-detail-header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.inst-detail-meta{display:flex;gap:6px}
+.inst-detail-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:10px}
+.inst-tab{padding:8px 18px;border:none;background:0 0;color:var(--dim);cursor:pointer;border-radius:var(--rs) var(--rs) 0 0;font-size:13px;font-weight:500;transition:.15s}
+.inst-tab:hover{color:var(--txt);background:var(--bg3)}
+.inst-tab.active{color:var(--txt);background:var(--bg3);border-bottom:2px solid var(--accent)}
+.inst-panel{display:none}.inst-panel.active{display:block}
+
+.mc-account-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.mc-account-name{color:var(--green);font-weight:700;font-size:14px}
+
+.installed-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.installed-tag{background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;display:flex;align-items:center;gap:8px}
+.installed-tag .remove{cursor:pointer;color:var(--muted);font-size:14px;font-weight:700}
+.installed-tag .remove:hover{color:#ff6b6b}
+
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);padding:10px 22px;border-radius:var(--r);font-size:13px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,.3);z-index:2000}
 ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:0 0}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}

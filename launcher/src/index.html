@@ -50,11 +50,8 @@
         <div><span class="pname" id="pname">Player</span><span class="owner hidden" id="owner">OWNER</span><span class="vip hidden" id="vip">VIP</span></div>
       </div>
       <nav class="nav">
-        <button class="nav-btn active" data-tab="home">&#127968; Home</button>
-        <button class="nav-btn" data-tab="mods">&#128230; Mods</button>
-        <button class="nav-btn" data-tab="modpacks">&#128230; Modpacks</button>
-        <button class="nav-btn" data-tab="resourcepacks">&#127912; Resource Packs</button>
-        <button class="nav-btn" data-tab="shaders">&#10024; Shaders</button>
+        <button class="nav-btn active" data-tab="instances">&#127968; Instanzen</button>
+        <button class="nav-btn" data-tab="browse">&#128270; Durchsuchen</button>
         <button class="nav-btn" data-tab="cosmetics">&#128081; Cosmetics</button>
         <button class="nav-btn" data-tab="settings">&#9881; Einstellungen</button>
       </nav>
@@ -63,19 +60,35 @@
     </div>
 
     <div class="content">
-      <!-- Home -->
-      <div class="tab active" id="tab-home">
-        <div class="home">
-          <div class="server-card">
-            <h2>Willkommen auf Chibi.art!</h2>
-            <div class="server-info"><span class="status-dot"></span> chibi.art:25565</div>
-            <div class="server-meta"><span>Lobby &rarr; Survival</span></div>
+
+      <!-- Instanzen (wie Modrinth) -->
+      <div class="tab active" id="tab-instances">
+        <div class="tab-header">
+          <h2>Meine Instanzen</h2>
+          <button class="btn btn-primary btn-sm" id="btn-new-instance">+ Neue Instanz</button>
+        </div>
+
+        <!-- Instanz-Liste -->
+        <div class="instance-grid" id="instance-grid">
+          <div class="instance-empty">
+            <p>Noch keine Instanzen erstellt.</p>
+            <p class="dim">Erstelle eine neue Instanz um zu spielen!</p>
           </div>
-          <div class="version-select-box">
-            <h3>Minecraft Version</h3>
-            <div class="version-row">
-              <select id="mc-version">
-                <option value="1.21.11">1.21.11 (Server)</option>
+        </div>
+
+        <!-- Neue Instanz erstellen (Modal) -->
+        <div class="modal hidden" id="modal-new-instance">
+          <div class="modal-box">
+            <div class="modal-header">
+              <h3>Neue Instanz erstellen</h3>
+              <button class="modal-close" id="modal-close-instance">&times;</button>
+            </div>
+            <div class="modal-body">
+              <label>Name</label>
+              <input type="text" id="inst-name" placeholder="z.B. Chibi Survival" autocomplete="off">
+              <label>Minecraft Version</label>
+              <select id="inst-version">
+                <option value="1.21.11">1.21.11</option>
                 <option value="1.21.10">1.21.10</option>
                 <option value="1.21.9">1.21.9</option>
                 <option value="1.21.8">1.21.8</option>
@@ -89,90 +102,119 @@
                 <option value="1.21">1.21</option>
                 <option value="1.20.6">1.20.6</option>
                 <option value="1.20.4">1.20.4</option>
-                <option value="1.20.2">1.20.2</option>
                 <option value="1.20.1">1.20.1</option>
                 <option value="1.20">1.20</option>
                 <option value="1.19.4">1.19.4</option>
                 <option value="1.19.2">1.19.2</option>
                 <option value="1.18.2">1.18.2</option>
-                <option value="1.17.1">1.17.1</option>
                 <option value="1.16.5">1.16.5</option>
                 <option value="1.12.2">1.12.2</option>
                 <option value="1.8.9">1.8.9</option>
               </select>
-              <select id="mc-loader">
+              <label>Modloader</label>
+              <select id="inst-loader">
                 <option value="vanilla">Vanilla</option>
                 <option value="fabric">Fabric</option>
+                <option value="forge">Forge</option>
               </select>
+              <button class="btn btn-primary btn-full" id="btn-create-instance" style="margin-top:12px">Instanz erstellen</button>
             </div>
           </div>
-          <div class="installed-box">
-            <h3>Installierte Mods (<span id="mod-count">0</span>)</h3>
-            <div id="installed-list" class="installed-list"><span class="dim">Keine Mods installiert</span></div>
-          </div>
-          <div class="mc-account-box" id="mc-account-box">
-            <div class="mc-account-info">
-              <span class="dim" id="mc-account-status">Kein Microsoft-Konto verknuepft</span>
-              <span class="mc-account-name hidden" id="mc-account-name"></span>
+        </div>
+
+        <!-- Instanz-Detail Ansicht -->
+        <div class="hidden" id="instance-detail">
+          <div class="inst-detail-header">
+            <button class="btn btn-ghost btn-sm" id="btn-back-instances">&larr; Zurueck</button>
+            <h2 id="inst-detail-name">Instanz</h2>
+            <div class="inst-detail-meta">
+              <span class="pill" id="inst-detail-version"></span>
+              <span class="pill" id="inst-detail-loader"></span>
+              <span class="pill" id="inst-detail-modcount">0 Mods</span>
             </div>
-            <button class="btn btn-sm btn-primary" id="btn-mc-login">Microsoft Account verknuepfen</button>
           </div>
-          <button class="btn-play" id="btn-play">&#9654; SPIELEN</button>
-          <div class="play-status hidden" id="play-status"><div class="spinner"></div><span>Minecraft startet...</span></div>
-          <div class="error-log hidden" id="error-log"></div>
+
+          <div class="inst-detail-tabs">
+            <button class="inst-tab active" data-itab="play">Spielen</button>
+            <button class="inst-tab" data-itab="mods">Mods</button>
+            <button class="inst-tab" data-itab="resourcepacks">Resource Packs</button>
+            <button class="inst-tab" data-itab="shaders">Shaders</button>
+          </div>
+
+          <!-- Play -->
+          <div class="inst-panel active" id="ipanel-play">
+            <div class="mc-account-box" id="mc-account-box">
+              <div class="mc-account-info">
+                <span class="dim" id="mc-account-status">Kein Microsoft-Konto verknuepft</span>
+                <span class="mc-account-name hidden" id="mc-account-name"></span>
+              </div>
+              <button class="btn btn-sm btn-primary" id="btn-mc-login">Microsoft Account verknuepfen</button>
+            </div>
+            <button class="btn-play" id="btn-play">&#9654; SPIELEN</button>
+            <div class="play-status hidden" id="play-status"><div class="spinner"></div><span>Minecraft startet...</span></div>
+            <div class="error-log hidden" id="error-log"></div>
+          </div>
+
+          <!-- Mods in dieser Instanz -->
+          <div class="inst-panel" id="ipanel-mods">
+            <div class="browse-header">
+              <h3>Mods hinzufuegen</h3>
+              <div class="search-bar">
+                <input type="text" id="inst-mod-search" placeholder="Mod suchen auf Modrinth..." autocomplete="off">
+                <button class="btn btn-primary btn-sm" id="inst-mod-search-btn">Suchen</button>
+              </div>
+            </div>
+            <div class="browse-grid" id="inst-mod-results"><span class="dim">Suche nach Mods...</span></div>
+            <h3 style="margin-top:20px">Installierte Mods</h3>
+            <div class="installed-list" id="inst-mod-list"><span class="dim">Keine Mods</span></div>
+          </div>
+
+          <!-- Resource Packs -->
+          <div class="inst-panel" id="ipanel-resourcepacks">
+            <div class="browse-header">
+              <h3>Resource Packs hinzufuegen</h3>
+              <div class="search-bar">
+                <input type="text" id="inst-rp-search" placeholder="Resource Pack suchen..." autocomplete="off">
+                <button class="btn btn-primary btn-sm" id="inst-rp-search-btn">Suchen</button>
+              </div>
+            </div>
+            <div class="browse-grid" id="inst-rp-results"><span class="dim">Suche nach Resource Packs...</span></div>
+            <h3 style="margin-top:20px">Installierte Resource Packs</h3>
+            <div class="installed-list" id="inst-rp-list"><span class="dim">Keine Resource Packs</span></div>
+          </div>
+
+          <!-- Shaders -->
+          <div class="inst-panel" id="ipanel-shaders">
+            <div class="browse-header">
+              <h3>Shaders hinzufuegen</h3>
+              <div class="search-bar">
+                <input type="text" id="inst-shader-search" placeholder="Shader suchen..." autocomplete="off">
+                <button class="btn btn-primary btn-sm" id="inst-shader-search-btn">Suchen</button>
+              </div>
+            </div>
+            <div class="browse-grid" id="inst-shader-results"><span class="dim">Suche nach Shaders...</span></div>
+            <h3 style="margin-top:20px">Installierte Shaders</h3>
+            <div class="installed-list" id="inst-shader-list"><span class="dim">Keine Shaders</span></div>
+          </div>
         </div>
       </div>
 
-      <!-- Mods -->
-      <div class="tab" id="tab-mods">
-        <div class="browse-header">
-          <h2>Mods</h2>
-          <div class="search-bar">
-            <input type="text" id="mod-search" placeholder="Mods suchen..." autocomplete="off">
-            <button class="btn btn-primary btn-sm" id="mod-search-btn">Suchen</button>
-          </div>
+      <!-- Durchsuchen (Browse) -->
+      <div class="tab" id="tab-browse">
+        <div class="tab-header">
+          <h2>Durchsuchen</h2>
         </div>
         <div class="source-tabs">
-          <button class="src-btn active" data-src="modrinth" data-type="mod">Modrinth Mods</button>
-          <button class="src-btn" data-src="chibi" data-type="mod">Chibi Mods</button>
+          <button class="src-btn active" data-btype="modpack">Modpacks</button>
+          <button class="src-btn" data-btype="mod">Mods</button>
+          <button class="src-btn" data-btype="resourcepack">Resource Packs</button>
+          <button class="src-btn" data-btype="shader">Shaders</button>
         </div>
-        <div class="browse-grid" id="mod-grid"><span class="dim">Suche nach Mods oder waehle eine Kategorie...</span></div>
-      </div>
-
-      <!-- Modpacks -->
-      <div class="tab" id="tab-modpacks">
-        <div class="browse-header">
-          <h2>Modpacks</h2>
-          <div class="search-bar">
-            <input type="text" id="mp-search" placeholder="Modpacks suchen..." autocomplete="off">
-            <button class="btn btn-primary btn-sm" id="mp-search-btn">Suchen</button>
-          </div>
+        <div class="search-bar" style="margin-bottom:16px">
+          <input type="text" id="browse-search" placeholder="Suchen auf Modrinth..." autocomplete="off">
+          <button class="btn btn-primary btn-sm" id="browse-search-btn">Suchen</button>
         </div>
-        <div class="browse-grid" id="mp-grid"><span class="dim">Suche nach Modpacks oder lade beliebte Modpacks...</span></div>
-      </div>
-
-      <!-- Resource Packs -->
-      <div class="tab" id="tab-resourcepacks">
-        <div class="browse-header">
-          <h2>Resource Packs</h2>
-          <div class="search-bar">
-            <input type="text" id="rp-search" placeholder="Resource Packs suchen..." autocomplete="off">
-            <button class="btn btn-primary btn-sm" id="rp-search-btn">Suchen</button>
-          </div>
-        </div>
-        <div class="browse-grid" id="rp-grid"><span class="dim">Suche nach Resource Packs...</span></div>
-      </div>
-
-      <!-- Shaders -->
-      <div class="tab" id="tab-shaders">
-        <div class="browse-header">
-          <h2>Shaders</h2>
-          <div class="search-bar">
-            <input type="text" id="shader-search" placeholder="Shaders suchen..." autocomplete="off">
-            <button class="btn btn-primary btn-sm" id="shader-search-btn">Suchen</button>
-          </div>
-        </div>
-        <div class="browse-grid" id="shader-grid"><span class="dim">Suche nach Shaders...</span></div>
+        <div class="browse-grid" id="browse-grid"><span class="dim">Laden...</span></div>
       </div>
 
       <!-- Cosmetics -->
@@ -197,7 +239,7 @@
           <label>RAM Zuweisung</label>
           <select id="set-ram"><option value="2">2 GB</option><option value="4" selected>4 GB</option><option value="6">6 GB</option><option value="8">8 GB</option><option value="12">12 GB</option><option value="16">16 GB</option></select>
           <label>Java Pfad (leer = automatisch)</label>
-          <input type="text" id="set-java" placeholder="Automatisch (Java 21)" autocomplete="off">
+          <input type="text" id="set-java" placeholder="Automatisch" autocomplete="off">
           <button class="btn btn-primary" id="btn-save">Speichern</button>
         </div>
       </div>
