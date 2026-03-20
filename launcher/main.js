@@ -512,14 +512,19 @@ ipcMain.handle('add-to-instance', async (ev, instId, slug, type) => {
     if (!inst) return { success: false, error: 'Instanz nicht gefunden' };
 
     // Get file from Modrinth
+    console.log('[Modrinth] Getting versions for', slug, 'game version', inst.version);
     let versions;
-    try { versions = await modrinthGet(`/project/${slug}/version?game_versions=["${inst.version}"]`); } catch(e) { versions = null; }
-    if (!versions || versions.length === 0) versions = await modrinthGet(`/project/${slug}/version`);
-    if (!versions || versions.length === 0) return { success: false, error: 'Keine Version gefunden' };
+    try { versions = await modrinthGet(`/project/${slug}/version?game_versions=["${inst.version}"]`); } catch(e) { console.error('Version fetch error:', e); versions = null; }
+    if (!versions || versions.length === 0) {
+      console.log('[Modrinth] No version for', inst.version, '- trying all versions');
+      try { versions = await modrinthGet(`/project/${slug}/version`); } catch(e) { return { success: false, error: 'API Fehler: ' + e.message }; }
+    }
+    if (!versions || versions.length === 0) return { success: false, error: 'Keine Version fuer ' + slug + ' gefunden' };
 
     const latest = versions[0];
-    const file = (latest.files.find(f => f.primary)) || latest.files[0];
-    if (!file) return { success: false, error: 'Keine Datei' };
+    const file = (latest.files && latest.files.find(f => f.primary)) || (latest.files && latest.files[0]);
+    if (!file) return { success: false, error: 'Keine Datei fuer ' + slug };
+    console.log('[Modrinth] Downloading', file.filename, 'from', file.url);
 
     // Download to instance dir
     let subdir;
@@ -590,13 +595,36 @@ async function doLaunchGame(p, mcVersion, instId) {
     const launcher = new Client();
     const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
 
-    // If launching from instance, set up overrides for mods/resourcepacks/shaders
-    const overrides = {};
+    // Copy instance mods/resourcepacks/shaders into MC game directory before launch
     if (instId) {
       const instDir = path.join(mcRoot, 'instances', instId);
-      overrides.gameDirectory = instDir;
-      // Copy version files will be in shared root, but game dir is per-instance
+      const gameDirs = {
+        mods: path.join(mcRoot, 'mods'),
+        resourcepacks: path.join(mcRoot, 'resourcepacks'),
+        shaderpacks: path.join(mcRoot, 'shaderpacks'),
+      };
+      // Clean old mods from game dir (only chibi-managed ones)
+      for (const [sub, gameDir] of Object.entries(gameDirs)) {
+        fs.mkdirSync(gameDir, { recursive: true });
+        // Clear game dir
+        try {
+          const files = fs.readdirSync(gameDir);
+          for (const f of files) { try { fs.unlinkSync(path.join(gameDir, f)); } catch(e) {} }
+        } catch(e) {}
+        // Copy instance files to game dir
+        const instSub = sub === 'shaderpacks' ? 'shaderpacks' : sub;
+        const srcDir = path.join(instDir, instSub);
+        if (fs.existsSync(srcDir)) {
+          const files = fs.readdirSync(srcDir);
+          for (const f of files) {
+            try { fs.copyFileSync(path.join(srcDir, f), path.join(gameDir, f)); } catch(e) { console.error('Copy error:', e); }
+          }
+        }
+      }
+      console.log('[Launch] Copied instance files from', instDir, 'to', mcRoot);
     }
+
+    const overrides = {};
 
     // Use Microsoft account if linked, otherwise offline
     const mcAccount = store.get('mcAccount');
