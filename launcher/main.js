@@ -136,31 +136,67 @@ ipcMain.handle('get-profile', () => {
 
 ipcMain.handle('logout', () => { store.delete('currentUser'); return true; });
 
-// Find Java on Windows
+// Find Java - check EVERYWHERE including Minecraft's own bundled Java
 function findJava() {
   const { execSync } = require('child_process');
-  // Check common paths
+  const home = process.env.APPDATA || '';
+  const local = process.env.LOCALAPPDATA || '';
+
   const paths = [
-    'javaw',
-    'java',
+    // Our own bundled Java
+    path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', 'javaw.exe'),
+    path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', 'java.exe'),
+    // Minecraft launcher's bundled Java (official launcher)
+    path.join(home, '.minecraft', 'runtime', 'java-runtime-delta', 'windows-x64', 'java-runtime-delta', 'bin', 'javaw.exe'),
+    path.join(home, '.minecraft', 'runtime', 'java-runtime-gamma', 'windows-x64', 'java-runtime-gamma', 'bin', 'javaw.exe'),
+    path.join(home, '.minecraft', 'runtime', 'java-runtime-beta', 'windows-x64', 'java-runtime-beta', 'bin', 'javaw.exe'),
+    path.join(home, '.minecraft', 'runtime', 'java-runtime-alpha', 'windows-x64', 'java-runtime-alpha', 'bin', 'javaw.exe'),
+    // MS Store Minecraft launcher Java
+    ...(() => {
+      try {
+        const pkgDir = path.join(local, 'Packages');
+        if (fs.existsSync(pkgDir)) {
+          const msDirs = fs.readdirSync(pkgDir).filter(d => d.startsWith('Microsoft.4297127D64EC6'));
+          for (const d of msDirs) {
+            const runtimeDir = path.join(pkgDir, d, 'LocalCache', 'Local', 'runtime');
+            if (fs.existsSync(runtimeDir)) {
+              const runtimes = fs.readdirSync(runtimeDir);
+              for (const rt of runtimes) {
+                const jp = path.join(runtimeDir, rt, 'windows-x64', rt, 'bin', 'javaw.exe');
+                if (fs.existsSync(jp)) return [jp];
+              }
+            }
+          }
+        }
+      } catch(e) {}
+      return [];
+    })(),
+    // Standard Java installations
     path.join(process.env.JAVA_HOME || '', 'bin', 'javaw.exe'),
-    path.join(process.env.JAVA_HOME || '', 'bin', 'java.exe'),
     'C:\\Program Files\\Java\\jdk-21\\bin\\javaw.exe',
     'C:\\Program Files\\Eclipse Adoptium\\jdk-21\\bin\\javaw.exe',
     'C:\\Program Files\\Eclipse Adoptium\\jre-21\\bin\\javaw.exe',
     'C:\\Program Files\\Microsoft\\jdk-21\\bin\\javaw.exe',
     'C:\\Program Files\\Zulu\\zulu-21\\bin\\javaw.exe',
+    'C:\\Program Files\\Java\\jre-21\\bin\\javaw.exe',
+    'C:\\Program Files\\Java\\jdk-17\\bin\\javaw.exe',
+    'C:\\Program Files\\Eclipse Adoptium\\jdk-17\\bin\\javaw.exe',
   ];
+
   for (const p of paths) {
-    try {
-      if (p === 'javaw' || p === 'java') {
-        execSync(`${p} -version`, { stdio: 'pipe', timeout: 5000 });
-        return p;
-      } else if (fs.existsSync(p)) {
-        return p;
-      }
-    } catch(e) {}
+    try { if (p && fs.existsSync(p)) return p; } catch(e) {}
   }
+
+  // Last resort: check PATH
+  try {
+    const result = execSync('where javaw', { stdio: 'pipe', timeout: 5000 }).toString().trim().split('\n')[0].trim();
+    if (result && fs.existsSync(result)) return result;
+  } catch(e) {}
+  try {
+    const result = execSync('where java', { stdio: 'pipe', timeout: 5000 }).toString().trim().split('\n')[0].trim();
+    if (result && fs.existsSync(result)) return result;
+  } catch(e) {}
+
   return null;
 }
 
@@ -265,28 +301,19 @@ ipcMain.handle('launch-game', async (ev, version) => {
   if (!p) return { success: false, error: 'Nicht eingeloggt' };
   const mcVersion = version || '1.21.1';
   try {
-    // Check for custom java path in settings
-    let javaPath;
+    // Find Java
     const customJava = store.get('settings.javaPath', '');
-    if (customJava && fs.existsSync(customJava)) {
-      javaPath = customJava;
-    }
-    // Otherwise use bundled Java 21
-    const bundledJavaw = path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', 'javaw.exe');
-    const bundledJava = path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', 'java.exe');
-    if (!javaPath && fs.existsSync(bundledJavaw)) {
-      javaPath = bundledJavaw;
-    } else if (!javaPath && fs.existsSync(bundledJava)) {
-      javaPath = bundledJava;
-    } else if (!javaPath) {
-      // Download Java 21
+    let javaPath = (customJava && fs.existsSync(customJava)) ? customJava : findJava();
+
+    if (!javaPath) {
+      // Try to download Java 21
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('launch-progress', { type: 'Java 21 wird heruntergeladen...', task: 0, total: 100 });
       }
       try {
         javaPath = await downloadJava();
       } catch(e) {
-        return { success: false, error: 'Java 21 Download fehlgeschlagen: ' + e.message + '\n\nBitte installiere Java 21 manuell: https://adoptium.net' };
+        return { success: false, error: 'Java nicht gefunden!\n\nBitte installiere Java 21:\nhttps://adoptium.net/de/temurin/releases/?os=windows&arch=x64&package=jre&version=21\n\nOder installiere den offiziellen Minecraft Launcher (der bringt Java mit).\n\nDanach Launcher neu starten.' };
       }
     }
 
