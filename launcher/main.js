@@ -136,39 +136,151 @@ ipcMain.handle('get-profile', () => {
 
 ipcMain.handle('logout', () => { store.delete('currentUser'); return true; });
 
+// Find Java on Windows
+function findJava() {
+  const { execSync } = require('child_process');
+  // Check common paths
+  const paths = [
+    'javaw',
+    'java',
+    path.join(process.env.JAVA_HOME || '', 'bin', 'javaw.exe'),
+    path.join(process.env.JAVA_HOME || '', 'bin', 'java.exe'),
+    'C:\\Program Files\\Java\\jdk-21\\bin\\javaw.exe',
+    'C:\\Program Files\\Eclipse Adoptium\\jdk-21\\bin\\javaw.exe',
+    'C:\\Program Files\\Eclipse Adoptium\\jre-21\\bin\\javaw.exe',
+    'C:\\Program Files\\Microsoft\\jdk-21\\bin\\javaw.exe',
+    'C:\\Program Files\\Zulu\\zulu-21\\bin\\javaw.exe',
+  ];
+  for (const p of paths) {
+    try {
+      if (p === 'javaw' || p === 'java') {
+        execSync(`${p} -version`, { stdio: 'pipe', timeout: 5000 });
+        return p;
+      } else if (fs.existsSync(p)) {
+        return p;
+      }
+    } catch(e) {}
+  }
+  return null;
+}
+
+// Download Java automatically
+async function downloadJava() {
+  const https = require('https');
+  const javaDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'java');
+  const javawPath = path.join(javaDir, 'bin', 'javaw.exe');
+
+  if (fs.existsSync(javawPath)) return javawPath;
+
+  // Download Adoptium JRE 21 for Windows
+  const url = 'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse';
+
+  return new Promise((resolve, reject) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('launch-progress', { type: 'Java wird heruntergeladen...', task: 0, total: 100 });
+    }
+
+    const zipPath = path.join(app.getPath('temp'), 'java21.zip');
+    const file = fs.createWriteStream(zipPath);
+
+    const doRequest = (requestUrl) => {
+      https.get(requestUrl, { headers: { 'User-Agent': 'ChibiLauncher/1.0' } }, (res) => {
+        if (res.statusCode === 302 || res.statusCode === 301) {
+          doRequest(res.headers.location);
+          return;
+        }
+        const total = parseInt(res.headers['content-length'] || '0');
+        let downloaded = 0;
+        res.on('data', (chunk) => {
+          downloaded += chunk.length;
+          file.write(chunk);
+          if (total > 0 && mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('launch-progress', { type: 'Java Download', task: downloaded, total });
+          }
+        });
+        res.on('end', () => {
+          file.end();
+          // Extract ZIP
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('launch-progress', { type: 'Java wird entpackt...', task: 90, total: 100 });
+          }
+          try {
+            const { execSync } = require('child_process');
+            fs.mkdirSync(javaDir, { recursive: true });
+            execSync(`powershell -Command "Expand-Archive -Force '${zipPath}' '${javaDir}'"`, { timeout: 120000 });
+            // Find the extracted folder (it has a version name)
+            const dirs = fs.readdirSync(javaDir).filter(d => fs.statSync(path.join(javaDir, d)).isDirectory());
+            if (dirs.length > 0) {
+              const extractedDir = path.join(javaDir, dirs[0]);
+              // Move contents up
+              const items = fs.readdirSync(extractedDir);
+              for (const item of items) {
+                fs.renameSync(path.join(extractedDir, item), path.join(javaDir, item));
+              }
+              fs.rmdirSync(extractedDir);
+            }
+            fs.unlinkSync(zipPath);
+            if (fs.existsSync(javawPath)) {
+              resolve(javawPath);
+            } else {
+              // Try java.exe instead
+              const javaExe = path.join(javaDir, 'bin', 'java.exe');
+              if (fs.existsSync(javaExe)) resolve(javaExe);
+              else reject(new Error('Java konnte nicht entpackt werden'));
+            }
+          } catch(e) {
+            reject(new Error('Java entpacken fehlgeschlagen: ' + e.message));
+          }
+        });
+        res.on('error', reject);
+      }).on('error', reject);
+    };
+    doRequest(url);
+  });
+}
+
 // Launch Game
 ipcMain.handle('launch-game', async () => {
   const p = store.get('currentUser');
   if (!p) return { success: false, error: 'Nicht eingeloggt' };
   try {
+    // Find or download Java
+    let javaPath = findJava();
+    if (!javaPath) {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('launch-progress', { type: 'Java nicht gefunden, wird heruntergeladen...', task: 0, total: 100 });
+      }
+      try {
+        javaPath = await downloadJava();
+      } catch(e) {
+        return { success: false, error: 'Java 21 konnte nicht heruntergeladen werden: ' + e.message + '\n\nBitte installiere Java 21 manuell: https://adoptium.net' };
+      }
+    }
+
     const { Client, Authenticator } = require('minecraft-launcher-core');
     const launcher = new Client();
+    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
     const opts = {
       authorization: Authenticator.getAuth(p.name),
-      root: path.join(app.getPath('appData'), '.chibi-minecraft'),
+      root: mcRoot,
+      javaPath: javaPath,
       version: { number: '1.21.1', type: 'release' },
       memory: { max: store.get('settings.ram', '4') + 'G', min: '2G' },
       javaArgs: [
         '-XX:+UseG1GC',
         '-XX:+ParallelRefProcEnabled',
-        '-XX:G1HeapRegionSize=8M',
-        '-XX:MaxGCPauseMillis=50',
         '-XX:+UnlockExperimentalVMOptions',
         '-XX:+DisableExplicitGC',
         '-XX:+AlwaysPreTouch',
-        '-XX:G1NewSizePercent=30',
-        '-XX:G1MaxNewSizePercent=40',
-        '-XX:G1ReservePercent=20',
-        '-Dfml.ignorePatchDiscrepancies=true',
-        '-Dfml.ignoreInvalidMinecraftCertificates=true',
       ],
       server: { host: 'chibi.art', port: '25565' },
     };
-    store.set(`session_start_${p.name}`, Date.now());
-    launcher.launch(opts);
+
     let lastLines = [];
-    launcher.on('debug', (e) => { console.log('[MC]', e); lastLines.push(String(e)); if(lastLines.length>50) lastLines.shift(); });
-    launcher.on('data', (e) => { console.log('[MC Data]', e); lastLines.push(String(e)); if(lastLines.length>50) lastLines.shift(); });
+
+    // Register events BEFORE launch
+    launcher.on('debug', (e) => { console.log('[MC]', e); lastLines.push(String(e)); if(lastLines.length>80) lastLines.shift(); });
+    launcher.on('data', (e) => { console.log('[MC Data]', e); lastLines.push(String(e)); if(lastLines.length>80) lastLines.shift(); });
     launcher.on('error', (e) => {
       console.error('[MC Error]', e);
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-error', String(e));
@@ -177,10 +289,9 @@ ipcMain.handle('launch-game', async () => {
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', e);
     });
     launcher.on('close', (code) => {
-      // If crashed, send last log lines to renderer
       if (code !== 0 && mainWindow && !mainWindow.isDestroyed()) {
-        const errorLog = lastLines.slice(-15).join('\n');
-        mainWindow.webContents.send('launch-error', 'Minecraft beendet (Code ' + code + ')\n' + errorLog);
+        const errorLog = lastLines.slice(-20).join('\n');
+        mainWindow.webContents.send('launch-error', 'Minecraft beendet (Code ' + code + ')\nJava: ' + javaPath + '\n\n' + errorLog);
       }
       const start = store.get(`session_start_${p.name}`);
       if (start) {
@@ -192,6 +303,11 @@ ipcMain.handle('launch-game', async () => {
         if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('coins-updated', { coins: cur + earned, earned, minutes: mins });
       }
     });
+
+    // NOW launch
+    store.set(`session_start_${p.name}`, Date.now());
+    launcher.launch(opts);
+
     return { success: true };
   } catch(e) { return { success: false, error: e.message || 'Start fehlgeschlagen' }; }
 });
