@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chibi Launcher - Download</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-base: #0f0f1a;
+            --bg-raised: #1a1a2e;
+            --bg-surface: #16213e;
+            --bg-hover: #1f3460;
+            --border: #2a2d45;
+            --text: #cdd2e0;
+            --text-dim: #8b90a5;
+            --text-bright: #e8ecf5;
+            --accent: #e94560;
+            --accent-glow: rgba(233, 69, 96, 0.3);
+            --gold: #ffd700;
+            --green: #1bd96a;
+            --radius: 16px;
+            --radius-sm: 10px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-base);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Trust Overlay */
+        .trust-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .trust-box {
+            background: var(--bg-raised);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 40px;
+            max-width: 460px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+            animation: slideUp 0.4s ease 0.1s both;
+        }
+        @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+
+        .trust-icon { font-size: 48px; margin-bottom: 16px; }
+        .trust-box h2 { font-size: 1.3rem; color: var(--text-bright); margin-bottom: 10px; }
+        .trust-box p { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 8px; }
+        .trust-domain { display: inline-block; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-family: monospace; font-size: 0.95rem; color: var(--green); font-weight: 600; margin: 12px 0 20px; }
+        .trust-buttons { display: flex; gap: 12px; justify-content: center; }
+        .trust-btn { padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; cursor: pointer; border: none; transition: all 0.2s; }
+        .trust-btn-accept { background: var(--green); color: #0a1a10; }
+        .trust-btn-accept:hover { background: #22e876; transform: translateY(-2px); box-shadow: 0 4px 16px rgba(27,217,106,0.3); }
+        .trust-btn-leave { background: var(--bg-surface); color: var(--text-dim); border: 1px solid var(--border); }
+        .trust-btn-leave:hover { color: var(--text-bright); }
+        body.blurred > *:not(.trust-overlay) { filter: blur(6px); pointer-events: none; }
+
+        /* Navbar */
+        .navbar { background: var(--bg-raised); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+        .navbar-inner { max-width: 1000px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 12px; }
+        .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: var(--text-bright); text-decoration: none; }
+        .nav-brand:hover { text-decoration: none; }
+        .nav-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #fff; font-weight: 800; }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, var(--bg-base) 0%, #1a1030 40%, var(--bg-base) 100%);
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+            padding: 64px 24px;
+        }
+        .hero-emoji { font-size: 72px; margin-bottom: 20px; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .hero h1 { font-size: 2.8rem; font-weight: 800; color: var(--text-bright); margin-bottom: 12px; }
+        .hero h1 span { color: var(--accent); }
+        .hero p { font-size: 1.1rem; color: var(--text-dim); max-width: 500px; margin: 0 auto 28px; }
+        .hero-tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .pill { padding: 5px 14px; border-radius: 9999px; font-size: 0.78rem; font-weight: 600; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-dim); }
+        .pill.accent { background: rgba(233,69,96,0.12); border-color: rgba(233,69,96,0.25); color: var(--accent); }
+        .pill.gold { background: rgba(255,215,0,0.1); border-color: rgba(255,215,0,0.2); color: var(--gold); }
+        .pill.green { background: rgba(27,217,106,0.1); border-color: rgba(27,217,106,0.2); color: var(--green); }
+
+        /* Download Section */
+        .download-section { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
+        .download-card {
+            background: var(--bg-raised);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 24px;
+            transition: all 0.2s;
+        }
+        .download-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        .dl-icon { width: 64px; height: 64px; background: linear-gradient(135deg, var(--accent), #533483); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+        .dl-info { flex: 1; }
+        .dl-info h3 { font-size: 1.2rem; color: var(--text-bright); margin-bottom: 4px; }
+        .dl-info p { font-size: 0.85rem; color: var(--text-dim); }
+        .dl-meta { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+        .dl-meta span { font-size: 0.75rem; color: var(--text-dim); background: var(--bg-surface); padding: 3px 10px; border-radius: 6px; }
+        .btn-download {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 14px 28px; background: var(--accent); color: white;
+            border-radius: var(--radius-sm); font-weight: 700; font-size: 0.95rem;
+            text-decoration: none; transition: all 0.2s; flex-shrink: 0;
+        }
+        .btn-download:hover { background: #ff5a75; transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); text-decoration: none; }
+        .btn-download svg { width: 18px; height: 18px; }
+
+        /* Features Grid */
+        .features-section { max-width: 1000px; margin: 0 auto; padding: 0 24px 48px; }
+        .features-title { font-size: 1.4rem; font-weight: 700; color: var(--text-bright); margin-bottom: 20px; text-align: center; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+        .feature-card {
+            background: var(--bg-raised);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .feature-card:hover { border-color: rgba(233,69,96,0.3); transform: translateY(-2px); }
+        .feature-emoji { font-size: 32px; margin-bottom: 10px; }
+        .feature-card h4 { color: var(--text-bright); font-size: 0.95rem; margin-bottom: 4px; }
+        .feature-card p { font-size: 0.8rem; color: var(--text-dim); }
+
+        /* Cosmetics Preview */
+        .cosmetics-section { max-width: 1000px; margin: 0 auto; padding: 0 24px 48px; }
+        .cosmetics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 20px; }
+        .cosmetic-item {
+            background: var(--bg-raised);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .cosmetic-item:hover { border-color: var(--gold); transform: translateY(-2px); }
+        .cosmetic-item .emoji { font-size: 28px; margin-bottom: 6px; }
+        .cosmetic-item .name { font-size: 0.8rem; color: var(--text-bright); font-weight: 600; }
+        .cosmetic-item .price { font-size: 0.7rem; color: var(--gold); margin-top: 2px; }
+
+        /* Footer */
+        .footer { max-width: 1000px; margin: 0 auto; padding: 24px; text-align: center; color: var(--text-dim); font-size: 0.8rem; border-top: 1px solid var(--border); }
+
+        /* Mobile */
+        @media (max-width: 640px) {
+            .hero h1 { font-size: 2rem; }
+            .download-card { flex-direction: column; text-align: center; }
+            .features-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body class="blurred">
+    <!-- Trust Overlay -->
+    <div class="trust-overlay" id="trust-overlay">
+        <div class="trust-box">
+            <div class="trust-icon">&#9888;&#65039;</div>
+            <h2>Vertraust du dieser Seite?</h2>
+            <p>Du bist dabei, Software von dieser Seite herunterzuladen. Stelle sicher, dass du der Quelle vertraust.</p>
+            <div class="trust-domain">deanischarf-max.github.io</div>
+            <p style="font-size:0.78rem;">Offizieller Launcher f&uuml;r den chibi.art Minecraft Server.</p>
+            <div class="trust-buttons">
+                <button class="trust-btn trust-btn-leave" onclick="history.back();window.close();">Verlassen</button>
+                <button class="trust-btn trust-btn-accept" onclick="document.getElementById('trust-overlay').remove();document.body.classList.remove('blurred');">Ich vertraue dieser Seite</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <div class="nav-icon">C</div>
+            <a href="/" class="nav-brand">Chibi Launcher</a>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="hero">
+        <div class="hero-emoji">&#9935;</div>
+        <h1>Chibi <span>Launcher</span></h1>
+        <p>Der offizielle Minecraft Launcher f&uuml;r chibi.art &mdash; mit Cosmetics Shop, Coins durch Spielzeit und direktem Server-Connect.</p>
+        <div class="hero-tags">
+            <span class="pill accent">Launcher</span>
+            <span class="pill">Minecraft 1.21.1</span>
+            <span class="pill gold">Cosmetics Shop</span>
+            <span class="pill green">Gratis</span>
+        </div>
+    </div>
+
+    <!-- Download -->
+    <div class="download-section">
+        <div class="download-card" id="download-windows">
+            <div class="dl-icon">&#128187;</div>
+            <div class="dl-info">
+                <h3>Windows Download</h3>
+                <p>Portable .exe &mdash; Einfach herunterladen und starten. Keine Installation n&ouml;tig.</p>
+                <div class="dl-meta">
+                    <span>Windows 10/11</span>
+                    <span>64-bit</span>
+                    <span>~72 MB</span>
+                    <span>v1.0.0</span>
+                </div>
+            </div>
+            <a href="https://github.com/deanischarf-max/chibi-launcher/releases/download/v1.0.0/Chibi-Launcher-1.0.0.exe" class="btn-download" id="dl-btn-win">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download
+            </a>
+        </div>
+
+        <div class="download-card">
+            <div class="dl-icon">&#128039;</div>
+            <div class="dl-info">
+                <h3>Linux Download</h3>
+                <p>AppImage &mdash; chmod +x und starten. Funktioniert auf allen Distros.</p>
+                <div class="dl-meta">
+                    <span>Linux x64</span>
+                    <span>AppImage</span>
+                    <span>~105 MB</span>
+                    <span>v1.0.0</span>
+                </div>
+            </div>
+            <a href="https://github.com/deanischarf-max/chibi-launcher/releases/download/v1.0.0/Chibi-Launcher-1.0.0.AppImage" class="btn-download">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download
+            </a>
+        </div>
+    </div>
+
+    <!-- Features -->
+    <div class="features-section">
+        <div class="features-title">Features</div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-emoji">&#128100;</div>
+                <h4>Eigener Login</h4>
+                <p>Account erstellen direkt im Launcher</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-emoji">&#129689;</div>
+                <h4>Coins System</h4>
+                <p>2 Coins pro Minute Spielzeit</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-emoji">&#128091;</div>
+                <h4>Cosmetics Shop</h4>
+                <p>20+ Capes, H&uuml;te, Fl&uuml;gel, Auren</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-emoji">&#9654;&#65039;</div>
+                <h4>Auto-Connect</h4>
+                <p>Direkt zu chibi.art:25565</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-emoji">&#128190;</div>
+                <h4>RAM Einstellungen</h4>
+                <p>2-16 GB konfigurierbar</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-emoji">&#11088;</div>
+                <h4>VIP System</h4>
+                <p>Spezielle Accounts mit allen Cosmetics</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cosmetics Preview -->
+    <div class="cosmetics-section">
+        <div class="features-title">Cosmetics Vorschau</div>
+        <div class="cosmetics-grid">
+            <div class="cosmetic-item"><div class="emoji">&#128420;</div><div class="name">Schattenburg Cape</div><div class="price">&#129689; 500</div></div>
+            <div class="cosmetic-item"><div class="emoji">&#9728;&#65039;</div><div class="name">Sonnen Cape</div><div class="price">&#129689; 500</div></div>
+            <div class="cosmetic-item"><div class="emoji">&#127752;</div><div class="name">Regenbogen Cape</div><div class="price">&#129689; 1.000</div></div>
+            <div class="cosmetic-item"><div class="emoji">&#128081;</div><div class="name">Goldene Krone</div><div class="price">&#129689; 2.000</div></div>
+            <div class="cosmetic-item"><div class="emoji">&#127913;</div><div class="name">Zylinder</div><div class="price">&#129689; 600</div></div>
+            <div class="cosmetic-item"><div class="emoji">&#128519;</div><div class="name">Engelsfluegel</div><div class="price">&#129689; 3.000</div></div>
+            <div class="cosmetic-item"><div class="emoji">&#128009;</div><div class="name">Drachenfluegel</div><div class="price">&#129689; 5.000</div></div>
+            <div class="cosmetic-item"><div class="emoji">&#128293;</div><div class="name">Flammen Aura</div><div class="price">&#129689; 1.000</div></div>
+            <div class="cosmetic-item"><div class="emoji">&#10024;</div><div class="name">Verzauberungs Aura</div><div class="price">&#129689; 1.500</div></div>
+            <div class="cosmetic-item"><div class="emoji">&#127925;</div><div class="name">Musik Aura</div><div class="price">&#129689; 800</div></div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        Chibi Launcher &copy; 2025 &mdash; chibi.art Minecraft Server
+    </div>
+</body>
+</html>

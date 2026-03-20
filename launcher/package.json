@@ -1,0 +1,43 @@
+{
+  "name": "chibi-launcher",
+  "version": "1.0.0",
+  "description": "Chibi.art Minecraft Launcher",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --linux --win",
+    "build-win": "electron-builder --win",
+    "build-linux": "electron-builder --linux"
+  },
+  "author": "chibi.art",
+  "license": "MIT",
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "minecraft-launcher-core": "^3.18.1"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "art.chibi.launcher",
+    "productName": "Chibi Launcher",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
