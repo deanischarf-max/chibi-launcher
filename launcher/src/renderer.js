@@ -1,5 +1,24 @@
 let cosmetics=[],ownedCosmetics=[],equippedCosmetics={},currentCat='capes',profile=null,currentModSource='modrinth';
-const ICONS={cape_shadow:'🖤',cape_light:'🤍',cape_sun:'☀️',cape_rainbow:'🌈',cape_fire:'🔥',cape_ice:'❄️',hat_crown:'👑',hat_wizard:'🧙',hat_top:'🎩',hat_santa:'🎅',hat_viking:'⚔️',wings_angel:'😇',wings_demon:'😈',wings_dragon:'🐉',wings_butterfly:'🦋',aura_flame:'🔥',aura_snow:'🌨️',aura_hearts:'💕',aura_music:'🎵',aura_enchant:'✨'};
+const ICONS={
+  // Capes
+  cape_shadow:'🖤',cape_light:'🤍',cape_sun:'☀️',cape_rainbow:'🌈',cape_fire:'🔥',cape_ice:'❄️',
+  cape_void:'🕳️',cape_emerald:'💎',cape_redstone:'🔴',cape_ender:'🟣',cape_nether:'🟠',cape_cherry:'🌸',cape_galaxy:'🌌',cape_phantom:'👻',
+  // Hats
+  hat_crown:'👑',hat_wizard:'🧙',hat_top:'🎩',hat_santa:'🎅',hat_viking:'⚔️',
+  hat_pirate:'🏴‍☠️',hat_samurai:'🗡️',hat_astronaut:'🧑‍🚀',hat_knight:'🛡️',hat_beret:'🎨',hat_mushroom:'🍄',hat_halo:'😇',hat_devil:'😈',
+  // Wings
+  wings_angel:'👼',wings_demon:'🦇',wings_dragon:'🐉',wings_butterfly:'🦋',
+  wings_phoenix:'🔥',wings_bee:'🐝',wings_crystal:'💠',wings_bat:'🦇',wings_fairy:'🧚',wings_steampunk:'⚙️',
+  // Auras
+  aura_flame:'🔥',aura_snow:'🌨️',aura_hearts:'💕',aura_music:'🎵',aura_enchant:'✨',
+  aura_lightning:'⚡',aura_cherry:'🌸',aura_void:'🌑',aura_rainbow:'🌈',aura_bubbles:'🫧',aura_skulls:'💀',aura_diamond:'💎',aura_bats:'🦇',
+  // Emotes
+  emote_dab:'🙆',emote_wave:'👋',emote_salute:'🫡',emote_breakdance:'🕺',emote_floss:'💃',emote_headbang:'🤘',emote_clap:'👏',emote_facepalm:'🤦',
+  // Pets
+  pet_cat:'🐱',pet_dog:'🐶',pet_parrot:'🦜',pet_fox:'🦊',pet_axolotl:'🐙',pet_bee:'🐝',pet_dragon:'🐲',pet_ghost:'👻',
+  // Trails
+  trail_fire:'🔥',trail_ice:'❄️',trail_rainbow:'🌈',trail_flowers:'🌺',trail_lightning:'⚡',trail_shadow:'🌑'
+};
 
 // Chibi Mods catalog
 const CHIBI_MODS = [

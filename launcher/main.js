@@ -27,26 +27,85 @@ const OWNER_USERS = ['FreezingDean'];
 const VIP_USERS = ['FreezingDean', 'LoserLocator'];
 
 const COSMETICS_CATALOG = [
+  // Capes
   { id: 'cape_shadow', name: 'Schattenburg Cape', category: 'capes', price: 500, description: 'Dunkles Cape der Schattenburg' },
   { id: 'cape_light', name: 'Helichkeits Cape', category: 'capes', price: 500, description: 'Strahlendes Cape der HelichkeitsBurg' },
   { id: 'cape_sun', name: 'Sonnen Cape', category: 'capes', price: 500, description: 'Goldenes Cape der SonnensBurg' },
   { id: 'cape_rainbow', name: 'Regenbogen Cape', category: 'capes', price: 1000, description: 'Seltenes Regenbogen Cape' },
   { id: 'cape_fire', name: 'Feuer Cape', category: 'capes', price: 1500, description: 'Brennendes Feuer Cape' },
   { id: 'cape_ice', name: 'Eis Cape', category: 'capes', price: 1500, description: 'Gefrorenes Eis Cape' },
+  { id: 'cape_void', name: 'Leere Cape', category: 'capes', price: 2500, description: 'Cape aus reiner Dunkelheit des Voids' },
+  { id: 'cape_emerald', name: 'Smaragd Cape', category: 'capes', price: 2000, description: 'Glitzerndes Smaragd Cape der Haendler' },
+  { id: 'cape_redstone', name: 'Redstone Cape', category: 'capes', price: 1800, description: 'Pulsierendes Redstone Cape' },
+  { id: 'cape_ender', name: 'Ender Cape', category: 'capes', price: 3000, description: 'Mystisches Cape aus dem Ende' },
+  { id: 'cape_nether', name: 'Nether Cape', category: 'capes', price: 2500, description: 'Gluehendes Cape aus dem Nether' },
+  { id: 'cape_cherry', name: 'Kirschblueten Cape', category: 'capes', price: 1200, description: 'Zartrosa Cape mit Kirschblueten' },
+  { id: 'cape_galaxy', name: 'Galaxie Cape', category: 'capes', price: 4000, description: 'Cape mit funkelnden Sternen und Nebeln' },
+  { id: 'cape_phantom', name: 'Phantom Cape', category: 'capes', price: 3500, description: 'Geisterhaftes Cape das im Wind weht' },
+  // Hats
   { id: 'hat_crown', name: 'Goldene Krone', category: 'hats', price: 2000, description: 'Eine goldene Krone fuer wahre Herrscher' },
   { id: 'hat_wizard', name: 'Zauberhut', category: 'hats', price: 800, description: 'Mystischer Zauberhut' },
   { id: 'hat_top', name: 'Zylinder', category: 'hats', price: 600, description: 'Eleganter Zylinder' },
   { id: 'hat_santa', name: 'Weihnachtsmuetze', category: 'hats', price: 300, description: 'Festliche Weihnachtsmuetze' },
   { id: 'hat_viking', name: 'Wikingerhelm', category: 'hats', price: 1200, description: 'Helm eines Wikingerkriegers' },
+  { id: 'hat_pirate', name: 'Piratenhut', category: 'hats', price: 900, description: 'Verwegener Hut eines Seeraubers' },
+  { id: 'hat_samurai', name: 'Samurai Helm', category: 'hats', price: 2500, description: 'Ehrwuerdiger Helm eines Samurai' },
+  { id: 'hat_astronaut', name: 'Astronautenhelm', category: 'hats', price: 3000, description: 'Helm fuer intergalaktische Abenteuer' },
+  { id: 'hat_knight', name: 'Ritterhelm', category: 'hats', price: 1800, description: 'Glanzender Helm eines tapferen Ritters' },
+  { id: 'hat_beret', name: 'Kuenstler Baskenmtze', category: 'hats', price: 400, description: 'Stilvolle Baskenmuetze fuer Kreative' },
+  { id: 'hat_mushroom', name: 'Pilzhut', category: 'hats', price: 700, description: 'Lustiger roter Fliegenpilz-Hut' },
+  { id: 'hat_halo', name: 'Heiligenschein', category: 'hats', price: 5000, description: 'Strahlender goldener Heiligenschein' },
+  { id: 'hat_devil', name: 'Teufelhoerner', category: 'hats', price: 4000, description: 'Gluehende Hoerner des Teufels' },
+  // Wings
   { id: 'wings_angel', name: 'Engelsfluegel', category: 'wings', price: 3000, description: 'Strahlende weisse Fluegel' },
   { id: 'wings_demon', name: 'Daemonenfluegel', category: 'wings', price: 3000, description: 'Dunkle Daemonenfluegel' },
   { id: 'wings_dragon', name: 'Drachenfluegel', category: 'wings', price: 5000, description: 'Maechtige Drachenfluegel' },
   { id: 'wings_butterfly', name: 'Schmetterlingsfluegel', category: 'wings', price: 2000, description: 'Bunte Schmetterlingsfluegel' },
+  { id: 'wings_phoenix', name: 'Phoenixfluegel', category: 'wings', price: 7000, description: 'Brennende Fluegel des Wiedergeborenen' },
+  { id: 'wings_bee', name: 'Bienenfluegel', category: 'wings', price: 1500, description: 'Suesse summende Bienenfluegel' },
+  { id: 'wings_crystal', name: 'Kristallfluegel', category: 'wings', price: 6000, description: 'Transparente Fluegel aus reinem Kristall' },
+  { id: 'wings_bat', name: 'Fledermausfluegel', category: 'wings', price: 2500, description: 'Dunkle ledrige Fledermausfluegel' },
+  { id: 'wings_fairy', name: 'Feenfluegel', category: 'wings', price: 3500, description: 'Funkelnde zarte Feenfluegel' },
+  { id: 'wings_steampunk', name: 'Dampffluegel', category: 'wings', price: 4500, description: 'Mechanische Fluegel mit Zahnraedern' },
+  // Auras
   { id: 'aura_flame', name: 'Flammen Aura', category: 'auras', price: 1000, description: 'Brennende Flammenpartikel' },
   { id: 'aura_snow', name: 'Schnee Aura', category: 'auras', price: 1000, description: 'Fallende Schneeflocken' },
   { id: 'aura_hearts', name: 'Herzen Aura', category: 'auras', price: 800, description: 'Schwebende Herzen' },
   { id: 'aura_music', name: 'Musik Aura', category: 'auras', price: 800, description: 'Tanzende Musiknoten' },
   { id: 'aura_enchant', name: 'Verzauberungs Aura', category: 'auras', price: 1500, description: 'Magische Verzauberungspartikel' },
+  { id: 'aura_lightning', name: 'Blitz Aura', category: 'auras', price: 2500, description: 'Knisternde Blitze um den Spieler' },
+  { id: 'aura_cherry', name: 'Kirschblueten Aura', category: 'auras', price: 1200, description: 'Sanft fallende Kirschblueten' },
+  { id: 'aura_void', name: 'Void Aura', category: 'auras', price: 3000, description: 'Dunkle wirbelnde Void-Partikel' },
+  { id: 'aura_rainbow', name: 'Regenbogen Aura', category: 'auras', price: 2000, description: 'Schimmernde Regenbogenfarben' },
+  { id: 'aura_bubbles', name: 'Blasen Aura', category: 'auras', price: 600, description: 'Schwebende bunte Seifenblasen' },
+  { id: 'aura_skulls', name: 'Totenkopf Aura', category: 'auras', price: 3500, description: 'Gruselige schwebende Totenschaedel' },
+  { id: 'aura_diamond', name: 'Diamant Aura', category: 'auras', price: 4000, description: 'Funkelnde Diamantsplitter' },
+  { id: 'aura_bats', name: 'Fledermaus Aura', category: 'auras', price: 1800, description: 'Kleine Fledermaeuse flattern umher' },
+  // Emotes
+  { id: 'emote_dab', name: 'Dab', category: 'emotes', price: 300, description: 'Der klassische Dab-Move' },
+  { id: 'emote_wave', name: 'Winken', category: 'emotes', price: 200, description: 'Freundlich winken' },
+  { id: 'emote_salute', name: 'Salutieren', category: 'emotes', price: 400, description: 'Militaerischer Gruss' },
+  { id: 'emote_breakdance', name: 'Breakdance', category: 'emotes', price: 1500, description: 'Wilder Breakdance auf dem Boden' },
+  { id: 'emote_floss', name: 'Floss Tanz', category: 'emotes', price: 800, description: 'Der beruehmte Floss-Tanz' },
+  { id: 'emote_headbang', name: 'Headbang', category: 'emotes', price: 600, description: 'Wildes Kopfschuetteln zur Musik' },
+  { id: 'emote_clap', name: 'Applaus', category: 'emotes', price: 250, description: 'Begeistertes Klatschen' },
+  { id: 'emote_facepalm', name: 'Facepalm', category: 'emotes', price: 500, description: 'Hand vors Gesicht - peinlich!' },
+  // Pets
+  { id: 'pet_cat', name: 'Kaetzchen', category: 'pets', price: 2000, description: 'Niedliches kleines Kaetzchen' },
+  { id: 'pet_dog', name: 'Huendchen', category: 'pets', price: 2000, description: 'Treuer kleiner Begleithund' },
+  { id: 'pet_parrot', name: 'Papagei', category: 'pets', price: 1500, description: 'Bunter sprechender Papagei' },
+  { id: 'pet_fox', name: 'Fuechslein', category: 'pets', price: 2500, description: 'Schlaues kleines Fuechslein' },
+  { id: 'pet_axolotl', name: 'Axolotl', category: 'pets', price: 3000, description: 'Suesser rosa Axolotl schwebt neben dir' },
+  { id: 'pet_bee', name: 'Bienchen', category: 'pets', price: 1800, description: 'Fleissiges summendes Bienchen' },
+  { id: 'pet_dragon', name: 'Baby Drache', category: 'pets', price: 10000, description: 'Winziger Drache der Feuer spuckt' },
+  { id: 'pet_ghost', name: 'Geistchen', category: 'pets', price: 4000, description: 'Freundlicher kleiner Geist' },
+  // Trails
+  { id: 'trail_fire', name: 'Feuerspur', category: 'trails', price: 1500, description: 'Brennende Flammen hinter dir' },
+  { id: 'trail_ice', name: 'Eisspur', category: 'trails', price: 1500, description: 'Gefrorene Kristalle auf dem Boden' },
+  { id: 'trail_rainbow', name: 'Regenbogenspur', category: 'trails', price: 2000, description: 'Bunter Regenbogen folgt deinen Schritten' },
+  { id: 'trail_flowers', name: 'Blumenspur', category: 'trails', price: 1000, description: 'Blumen spriessen wo du gehst' },
+  { id: 'trail_lightning', name: 'Blitzspur', category: 'trails', price: 2500, description: 'Elektrische Funken hinter dir' },
+  { id: 'trail_shadow', name: 'Schattenspur', category: 'trails', price: 3000, description: 'Dunkle Schatten verfolgen dich' },
 ];
 
 const COINS_PER_MINUTE = 2;
@@ -547,12 +606,24 @@ ipcMain.handle('search-modrinth', async (ev, type, query) => {
 ipcMain.handle('install-modrinth', async (ev, slug, type) => {
   try {
     const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
-    // Get project versions
-    const versions = await modrinthGet(`/project/${slug}/version`);
+    const gameVersion = store.get('settings.gameVersion', '1.21.1');
+
+    // Get project versions filtered by game version
+    let versions;
+    try {
+      versions = await modrinthGet(`/project/${slug}/version?game_versions=["${gameVersion}"]`);
+    } catch(e) {
+      versions = null;
+    }
+    // Fallback: if no version matched the filter, get all versions
+    if (!versions || versions.length === 0) {
+      versions = await modrinthGet(`/project/${slug}/version`);
+    }
     if (!versions || versions.length === 0) return { success: false, error: 'Keine Version gefunden' };
 
+    // Pick the latest version, preferring primary files
     const latest = versions[0];
-    const file = latest.files && latest.files[0];
+    const file = (latest.files && latest.files.find(f => f.primary)) || (latest.files && latest.files[0]);
     if (!file) return { success: false, error: 'Keine Datei gefunden' };
 
     // Determine install dir
@@ -616,17 +687,37 @@ ipcMain.handle('remove-mod', (ev, filename) => {
 
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
-    const mod = url.startsWith('https') ? require('https') : require('http');
-    const doReq = (u) => {
+    const doReq = (u, redirectCount) => {
+      if (redirectCount > 10) { reject(new Error('Zu viele Weiterleitungen')); return; }
+      // Pick http or https module based on the CURRENT url (handles cross-protocol redirects)
+      const mod = u.startsWith('https') ? require('https') : require('http');
       mod.get(u, { headers: { 'User-Agent': 'ChibiLauncher/1.0' } }, res => {
-        if (res.statusCode === 301 || res.statusCode === 302) { doReq(res.headers.location); return; }
+        if (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 303 || res.statusCode === 307 || res.statusCode === 308) {
+          let location = res.headers.location;
+          if (!location) { reject(new Error('Weiterleitung ohne Ziel')); return; }
+          // Handle relative redirects
+          if (location.startsWith('/')) {
+            const parsed = new URL(u);
+            location = parsed.protocol + '//' + parsed.host + location;
+          }
+          // Consume the response to free the socket
+          res.resume();
+          doReq(location, redirectCount + 1);
+          return;
+        }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          res.resume();
+          reject(new Error('Download fehlgeschlagen: HTTP ' + res.statusCode));
+          return;
+        }
         const file = fs.createWriteStream(dest);
         res.pipe(file);
         file.on('finish', () => { file.close(); resolve(); });
-        file.on('error', reject);
+        file.on('error', (err) => { try { fs.unlinkSync(dest); } catch(e) {} reject(err); });
+        res.on('error', (err) => { try { fs.unlinkSync(dest); } catch(e) {} reject(err); });
       }).on('error', reject);
     };
-    doReq(url);
+    doReq(url, 0);
   });
 }
 
