@@ -146,22 +146,36 @@ ipcMain.handle('mc-login', async () => {
 
     const code = await new Promise((resolve, reject) => {
       const authWin = new BrowserWindow({ width: 520, height: 700, parent: mainWindow, modal: true, show: false, autoHideMenuBar: true, webPreferences: { contextIsolation: true, nodeIntegration: false } });
-      authWin.loadURL(authUrl);
-      authWin.once('ready-to-show', () => authWin.show());
 
+      let resolved = false;
       const handleUrl = (url) => {
-        if (!url.startsWith(MS_REDIRECT)) return false;
+        if (resolved) return;
+        if (!url.startsWith(MS_REDIRECT)) return;
+        resolved = true;
         const u = new URL(url);
         const c = u.searchParams.get('code');
         const e = u.searchParams.get('error');
-        if (e) { authWin.destroy(); reject(new Error(e)); return true; }
-        if (c) { authWin.destroy(); resolve(c); return true; }
-        return false;
+        try { authWin.destroy(); } catch(x) {}
+        if (e) reject(new Error(e));
+        else if (c) resolve(c);
+        else reject(new Error('Kein Code erhalten'));
       };
 
-      authWin.webContents.on('will-redirect', (ev, url) => handleUrl(url));
+      // Intercept ALL navigation to catch the redirect
       authWin.webContents.on('will-navigate', (ev, url) => handleUrl(url));
-      authWin.on('closed', () => reject(new Error('Fenster geschlossen')));
+      authWin.webContents.on('did-navigate', (ev, url) => handleUrl(url));
+      authWin.webContents.on('will-redirect', (ev, url) => handleUrl(url));
+      authWin.webContents.on('did-redirect-navigation', (ev, url) => handleUrl(url));
+
+      // Also use webRequest filter as backup
+      authWin.webContents.session.webRequest.onBeforeRequest({ urls: ['https://login.live.com/oauth20_desktop.srf*'] }, (details, cb) => {
+        handleUrl(details.url);
+        cb({ cancel: false });
+      });
+
+      authWin.loadURL(authUrl);
+      authWin.once('ready-to-show', () => authWin.show());
+      authWin.on('closed', () => { if (!resolved) { resolved = true; reject(new Error('Fenster geschlossen')); } });
     });
 
     // Exchange code for tokens
