@@ -244,16 +244,23 @@ ipcMain.handle('launch-game', async () => {
   const p = store.get('currentUser');
   if (!p) return { success: false, error: 'Nicht eingeloggt' };
   try {
-    // Find or download Java
-    let javaPath = findJava();
-    if (!javaPath) {
+    // Always use our own Java 21 to avoid version issues
+    let javaPath;
+    const bundledJavaw = path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', 'javaw.exe');
+    const bundledJava = path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', 'java.exe');
+    if (fs.existsSync(bundledJavaw)) {
+      javaPath = bundledJavaw;
+    } else if (fs.existsSync(bundledJava)) {
+      javaPath = bundledJava;
+    } else {
+      // Download Java 21
       if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('launch-progress', { type: 'Java nicht gefunden, wird heruntergeladen...', task: 0, total: 100 });
+        mainWindow.webContents.send('launch-progress', { type: 'Java 21 wird heruntergeladen...', task: 0, total: 100 });
       }
       try {
         javaPath = await downloadJava();
       } catch(e) {
-        return { success: false, error: 'Java 21 konnte nicht heruntergeladen werden: ' + e.message + '\n\nBitte installiere Java 21 manuell: https://adoptium.net' };
+        return { success: false, error: 'Java 21 Download fehlgeschlagen: ' + e.message + '\n\nBitte installiere Java 21 manuell: https://adoptium.net' };
       }
     }
 
