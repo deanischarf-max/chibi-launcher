@@ -151,8 +151,8 @@ ipcMain.handle('register', (ev, username, password) => {
     accounts[username.toLowerCase()] = { username, password: hashPassword(password), createdAt: Date.now() };
     store.set('accounts', accounts);
 
-    const isOwner = OWNER_USERS.includes(username);
-    const isVIP = VIP_USERS.includes(username);
+    const isOwner = OWNER_USERS.map(u=>u.toLowerCase()).includes(username.toLowerCase());
+    const isVIP = VIP_USERS.map(u=>u.toLowerCase()).includes(username.toLowerCase());
     store.set('currentUser', { name: username });
     if (isVIP || isOwner) { store.set(`owned_${username}`, COSMETICS_CATALOG.map(c => c.id)); }
     if (isOwner) store.set(`coins_${username}`, 999999);
@@ -174,13 +174,13 @@ ipcMain.handle('login', (ev, username, password) => {
     if (account.password !== hashPassword(password)) return { success: false, error: 'Falsches Passwort' };
 
     const name = account.username;
-    const isVIP = VIP_USERS.includes(name);
+    const isOwner = OWNER_USERS.map(u=>u.toLowerCase()).includes(name.toLowerCase());
+    const isVIP = VIP_USERS.map(u=>u.toLowerCase()).includes(name.toLowerCase());
     store.set('currentUser', { name });
-    if (isVIP) { store.set(`owned_${name}`, COSMETICS_CATALOG.map(c => c.id)); }
-    if (!store.has(`coins_${name}`)) store.set(`coins_${name}`, isVIP ? 99999 : 0);
+    if (isVIP || isOwner) { store.set(`owned_${name}`, COSMETICS_CATALOG.map(c => c.id)); }
+    if (isOwner) store.set(`coins_${name}`, 999999);
+    else if (!store.has(`coins_${name}`)) store.set(`coins_${name}`, isVIP ? 99999 : 0);
     if (!store.has(`equipped_${name}`)) store.set(`equipped_${name}`, {});
-
-    const isOwner = OWNER_USERS.includes(name);
     return { success: true, profile: { name, isVIP, isOwner } };
   } catch(e) { return { success: false, error: 'Login fehlgeschlagen' }; }
 });
@@ -189,7 +189,7 @@ ipcMain.handle('get-profile', () => {
   try {
     const p = store.get('currentUser');
     if (!p) return null;
-    return { name: p.name, isVIP: VIP_USERS.includes(p.name), isOwner: OWNER_USERS.includes(p.name) };
+    return { name: p.name, isVIP: VIP_USERS.map(u=>u.toLowerCase()).includes(p.name.toLowerCase()), isOwner: OWNER_USERS.map(u=>u.toLowerCase()).includes(p.name.toLowerCase()) };
   } catch(e) { return null; }
 });
 
