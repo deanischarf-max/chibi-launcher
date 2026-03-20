@@ -12,7 +12,6 @@
   "author": "chibi.art",
   "license": "MIT",
   "dependencies": {
-    "electron-store": "^8.2.0",
     "minecraft-launcher-core": "^3.18.1"
   },
   "devDependencies": {

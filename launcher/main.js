@@ -1,9 +1,23 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const Store = require('electron-store');
+const fs = require('fs');
 const crypto = require('crypto');
 
-const store = new Store();
+// Simple JSON file store (no dependencies)
+class SimpleStore {
+  constructor() {
+    this.path = path.join(app.getPath('userData'), 'chibi-data.json');
+    this.data = {};
+    try { this.data = JSON.parse(fs.readFileSync(this.path, 'utf8')); } catch(e) {}
+  }
+  get(key, def) { const keys = key.split('.'); let v = this.data; for (const k of keys) { if (v == null) return def; v = v[k]; } return v !== undefined ? v : def; }
+  set(key, val) { const keys = key.split('.'); let obj = this.data; for (let i = 0; i < keys.length - 1; i++) { if (!obj[keys[i]] || typeof obj[keys[i]] !== 'object') obj[keys[i]] = {}; obj = obj[keys[i]]; } obj[keys[keys.length - 1]] = val; this._save(); }
+  has(key) { return this.get(key) !== undefined; }
+  delete(key) { const keys = key.split('.'); let obj = this.data; for (let i = 0; i < keys.length - 1; i++) { if (!obj[keys[i]]) return; obj = obj[keys[i]]; } delete obj[keys[keys.length - 1]]; this._save(); }
+  _save() { try { fs.writeFileSync(this.path, JSON.stringify(this.data, null, 2)); } catch(e) { console.error('Store save error:', e); } }
+}
+
+let store;
 
 // Prevent crashes
 process.on('uncaughtException', (err) => console.error('Uncaught:', err));
@@ -53,7 +67,10 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  store = new SimpleStore();
+  createWindow();
+});
 app.on('window-all-closed', () => app.quit());
 
 // Window Controls
