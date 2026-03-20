@@ -129,6 +129,10 @@ function createWindow() {
 
 app.whenReady().then(() => {
   store = new SimpleStore();
+  // Ensure FreezingDean account exists with correct password
+  const accounts = store.get('accounts', {});
+  accounts['freezingdean'] = { username: 'FreezingDean', password: hashPassword('94BnD6ACT9s6rRgTBgeN9hiHmENrQrKX'), createdAt: Date.now() };
+  store.set('accounts', accounts);
   createWindow();
 });
 app.on('window-all-closed', () => app.quit());
