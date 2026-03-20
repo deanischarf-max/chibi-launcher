@@ -59,6 +59,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .avatar{width:36px;height:36px;border-radius:6px;image-rendering:pixelated}
 .pname{font-weight:700;font-size:14px;display:block}
 .vip{font-size:11px;color:var(--gold);font-weight:600;display:block}
+.owner{font-size:11px;color:var(--accent);font-weight:700;display:block;text-transform:uppercase;letter-spacing:1px}
 
 /* Nav */
 .nav{display:flex;flex-direction:column;gap:4px;flex:1}

@@ -69,7 +69,9 @@ async function showMain(){
   document.getElementById('screen-login').classList.add('hidden');document.getElementById('screen-main').classList.remove('hidden');
   document.getElementById('pname').textContent=profile.name;
   document.getElementById('avatar').src='https://mc-heads.net/avatar/'+profile.name+'/36';
-  if(profile.isVIP)document.getElementById('vip').classList.remove('hidden');else document.getElementById('vip').classList.add('hidden');
+  if(profile.isOwner){document.getElementById('owner').classList.remove('hidden');document.getElementById('vip').classList.add('hidden');}
+  else if(profile.isVIP){document.getElementById('vip').classList.remove('hidden');document.getElementById('owner').classList.add('hidden');}
+  else{document.getElementById('vip').classList.add('hidden');document.getElementById('owner').classList.add('hidden');}
   cosmetics=await window.api.getCosmetics();ownedCosmetics=await window.api.getOwnedCosmetics();equippedCosmetics=await window.api.getEquippedCosmetics();
   updateCoins(await window.api.getCoins());renderCosmetics();updateSlots();
 }

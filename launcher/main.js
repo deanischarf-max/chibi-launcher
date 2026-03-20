@@ -23,6 +23,7 @@ let store;
 process.on('uncaughtException', (err) => console.error('Uncaught:', err));
 process.on('unhandledRejection', (err) => console.error('Unhandled:', err));
 
+const OWNER_USERS = ['FreezingDean'];
 const VIP_USERS = ['FreezingDean', 'LoserLocator'];
 
 const COSMETICS_CATALOG = [
@@ -91,13 +92,15 @@ ipcMain.handle('register', (ev, username, password) => {
     accounts[username.toLowerCase()] = { username, password: hashPassword(password), createdAt: Date.now() };
     store.set('accounts', accounts);
 
+    const isOwner = OWNER_USERS.includes(username);
     const isVIP = VIP_USERS.includes(username);
     store.set('currentUser', { name: username });
-    if (isVIP) { store.set(`owned_${username}`, COSMETICS_CATALOG.map(c => c.id)); }
-    if (!store.has(`coins_${username}`)) store.set(`coins_${username}`, isVIP ? 99999 : 0);
+    if (isVIP || isOwner) { store.set(`owned_${username}`, COSMETICS_CATALOG.map(c => c.id)); }
+    if (isOwner) store.set(`coins_${username}`, 999999);
+    else if (!store.has(`coins_${username}`)) store.set(`coins_${username}`, isVIP ? 99999 : 0);
     if (!store.has(`equipped_${username}`)) store.set(`equipped_${username}`, {});
 
-    return { success: true, profile: { name: username, isVIP } };
+    return { success: true, profile: { name: username, isVIP, isOwner } };
   } catch(e) { return { success: false, error: 'Registrierung fehlgeschlagen' }; }
 });
 
@@ -118,7 +121,8 @@ ipcMain.handle('login', (ev, username, password) => {
     if (!store.has(`coins_${name}`)) store.set(`coins_${name}`, isVIP ? 99999 : 0);
     if (!store.has(`equipped_${name}`)) store.set(`equipped_${name}`, {});
 
-    return { success: true, profile: { name, isVIP } };
+    const isOwner = OWNER_USERS.includes(name);
+    return { success: true, profile: { name, isVIP, isOwner } };
   } catch(e) { return { success: false, error: 'Login fehlgeschlagen' }; }
 });
 
@@ -126,7 +130,7 @@ ipcMain.handle('get-profile', () => {
   try {
     const p = store.get('currentUser');
     if (!p) return null;
-    return { name: p.name, isVIP: VIP_USERS.includes(p.name) };
+    return { name: p.name, isVIP: VIP_USERS.includes(p.name), isOwner: OWNER_USERS.includes(p.name) };
   } catch(e) { return null; }
 });
 
