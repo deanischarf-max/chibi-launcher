@@ -71,7 +71,17 @@ jobs:
         run: |
           mkdir -p release-files
           find dist -type f \( -name "*.exe" -o -name "*.AppImage" -o -name "*.yml" -o -name "*.yaml" \) -exec cp {} release-files/ \;
-          cp chibi-cosmetics/build/libs/ChibiCosmetics-*.jar release-files/ 2>/dev/null || echo "No mod JAR"
+          echo "=== Looking for mod JARs ==="
+          find chibi-cosmetics/build/libs/ -name "*.jar" -ls 2>/dev/null || echo "No libs dir"
+          # Copy any JAR from build/libs (could be ChibiCosmetics or chibi-cosmetics)
+          for jar in chibi-cosmetics/build/libs/*.jar; do
+            if [ -f "$jar" ]; then
+              cp "$jar" release-files/ChibiCosmetics-1.0.0.jar
+              echo "Copied: $jar"
+              break
+            fi
+          done
+          echo "=== release-files ==="
           ls -la release-files/
         continue-on-error: true
 
