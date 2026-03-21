@@ -241,17 +241,28 @@ app.whenReady().then(() => {
   store = new SimpleStore();
   createWindow();
 
-  // Auto-Update
+  // Auto-Update (allow unsigned updates for non-code-signed builds)
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.on('update-available', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Update wird heruntergeladen...');
+  autoUpdater.allowDowngrade = false;
+  autoUpdater.allowPrerelease = false;
+  try { autoUpdater.forceDevUpdateConfig = false; } catch(e) {}
+  autoUpdater.on('checking-for-update', () => console.log('[Update] Checking...'));
+  autoUpdater.on('update-available', (info) => {
+    console.log('[Update] Available:', info.version);
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Update v' + info.version + ' wird heruntergeladen...');
   });
-  autoUpdater.on('update-downloaded', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Update bereit! Startet beim naechsten Neustart.');
+  autoUpdater.on('update-not-available', () => console.log('[Update] Up to date'));
+  autoUpdater.on('download-progress', (p) => console.log('[Update] Download:', Math.round(p.percent) + '%'));
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('[Update] Downloaded:', info.version);
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Update v' + info.version + ' bereit! Startet beim Schliessen.');
   });
-  autoUpdater.on('error', (err) => console.error('Update error:', err));
-  setTimeout(() => { try { autoUpdater.checkForUpdates(); } catch(e) {} }, 3000);
+  autoUpdater.on('error', (err) => {
+    console.error('[Update] Error:', err.message || err);
+    // Don't show error to user - silent fail is fine for updates
+  });
+  setTimeout(() => { try { autoUpdater.checkForUpdates(); } catch(e) { console.error('[Update] Check failed:', e); } }, 5000);
 });
 app.on('window-all-closed', () => app.quit());
 

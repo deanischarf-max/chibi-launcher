@@ -1,6 +1,6 @@
 {
   "name": "chibi-launcher",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Chibi.art Minecraft Launcher",
   "main": "main.js",
   "scripts": {
@@ -39,12 +39,14 @@
     "linux": {
       "target": "AppImage"
     },
+    "artifactName": "${productName}-Setup-${version}.${ext}",
     "nsis": {
       "oneClick": true,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "publish": {
       "provider": "github",
