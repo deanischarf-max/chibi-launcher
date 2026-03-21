@@ -468,26 +468,39 @@ app.whenReady().then(() => {
   store = new SimpleStore();
   createWindow();
 
-  // Auto-Update (allow unsigned updates for non-code-signed builds)
+  // Auto-Update
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.allowDowngrade = false;
   autoUpdater.allowPrerelease = false;
-  try { autoUpdater.forceDevUpdateConfig = false; } catch(e) {}
-  autoUpdater.on('checking-for-update', () => console.log('[Update] Checking...'));
+  // CRITICAL: Disable signature verification for unsigned builds
+  autoUpdater.verifyUpdateCodeSignature = false;
+  // Force the correct GitHub provider config
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'deanischarf-max',
+    repo: 'chibi-launcher',
+  });
+  autoUpdater.on('checking-for-update', () => {
+    console.log('[Update] Checking for updates...');
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Suche nach Updates...');
+  });
   autoUpdater.on('update-available', (info) => {
-    console.log('[Update] Available:', info.version);
+    console.log('[Update] Update available:', info.version);
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Update v' + info.version + ' wird heruntergeladen...');
   });
-  autoUpdater.on('update-not-available', () => console.log('[Update] Up to date'));
-  autoUpdater.on('download-progress', (p) => console.log('[Update] Download:', Math.round(p.percent) + '%'));
+  autoUpdater.on('update-not-available', () => console.log('[Update] Already up to date'));
+  autoUpdater.on('download-progress', (p) => {
+    console.log('[Update] Download:', Math.round(p.percent) + '%');
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Update Download: ' + Math.round(p.percent) + '%');
+  });
   autoUpdater.on('update-downloaded', (info) => {
-    console.log('[Update] Downloaded:', info.version);
+    console.log('[Update] Downloaded! Version:', info.version);
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Update v' + info.version + ' bereit! Startet beim Schliessen.');
   });
   autoUpdater.on('error', (err) => {
     console.error('[Update] Error:', err.message || err);
-    // Don't show error to user - silent fail is fine for updates
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-status', 'Update-Fehler: ' + (err.message || 'Unbekannt'));
   });
   setTimeout(() => { try { autoUpdater.checkForUpdates(); } catch(e) { console.error('[Update] Check failed:', e); } }, 5000);
 });

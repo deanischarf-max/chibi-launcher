@@ -1,6 +1,6 @@
 {
   "name": "chibi-launcher",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Chibi.art Minecraft Launcher",
   "main": "main.js",
   "scripts": {
@@ -34,7 +34,8 @@
           "target": "nsis",
           "arch": ["x64"]
         }
-      ]
+      ],
+      "verifyUpdateCodeSignature": false
     },
     "linux": {
       "target": "AppImage"
