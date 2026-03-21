@@ -5,7 +5,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.particle.*;
-import net.minecraft.util.math.Vec3d;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,9 +97,9 @@ public class ChibiCosmetics implements ClientModInitializer {
 
     private void renderAllCosmetics(MinecraftClient client, AbstractClientPlayerEntity player, CosmeticsData data) {
         try {
-        Vec3d pos = player.getPos();
-        Vec3d vel = player.getVelocity();
-        boolean moving = Math.abs(vel.x) > 0.01 || Math.abs(vel.z) > 0.01;
+        double px = player.getX(), py = player.getY(), pz = player.getZ();
+        double vx = player.getVelocity().x, vz = player.getVelocity().z;
+        boolean moving = Math.abs(vx) > 0.01 || Math.abs(vz) > 0.01;
         double yaw = Math.toRadians(player.getYaw());
 
         // ── Trails (behind player while moving) ──
@@ -110,7 +109,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                 for (int i = 0; i < 3; i++) {
                     double ox = (Math.random() - 0.5) * 0.3;
                     double oz = (Math.random() - 0.5) * 0.3;
-                    client.world.addParticle(p, pos.x + ox, pos.y + 0.1, pos.z + oz, 0.0, 0.02, 0.0);
+                    client.world.addParticle(p, true, true, px + ox, py + 0.1, pz + oz, 0.0, 0.02, 0.0);
                 }
             }
         }
@@ -121,10 +120,10 @@ public class ChibiCosmetics implements ClientModInitializer {
             if (p != null) {
                 for (int i = 0; i < 8; i++) {
                     double angle = (Math.PI * 2 / 8) * i + (tick * 0.08);
-                    double px = pos.x + Math.cos(angle) * 0.9;
-                    double pz = pos.z + Math.sin(angle) * 0.9;
-                    double py = pos.y + 1.0 + Math.sin(tick * 0.05 + i) * 0.3;
-                    client.world.addParticle(p, px, py, pz, 0.0, 0.01, 0.0);
+                    double ax = px + Math.cos(angle) * 0.9;
+                    double az = pz + Math.sin(angle) * 0.9;
+                    double ay = py + 1.0 + Math.sin(tick * 0.05 + i) * 0.3;
+                    client.world.addParticle(p, true, true, ax, ay, az, 0.0, 0.01, 0.0);
                 }
             }
         }
@@ -137,7 +136,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                     double ox = (Math.random() - 0.5) * 2.0;
                     double oy = Math.random() * 2.2;
                     double oz = (Math.random() - 0.5) * 2.0;
-                    client.world.addParticle(p, pos.x + ox, pos.y + oy, pos.z + oz, 0.0, 0.01, 0.0);
+                    client.world.addParticle(p, true, true, px + ox, py + oy, pz + oz, 0.0, 0.01, 0.0);
                 }
             }
         }
@@ -154,9 +153,9 @@ public class ChibiCosmetics implements ClientModInitializer {
                     for (int h = 0; h < 5; h++) {
                         double spread = (h * 0.15) * side;
                         double height = 1.2 + h * 0.2 - (h * h * 0.03);
-                        double wingX = pos.x + backX + sideX + Math.cos(yaw) * spread;
-                        double wingZ = pos.z + backZ + sideZ + Math.sin(yaw) * spread;
-                        client.world.addParticle(p, wingX, pos.y + height, wingZ, 0.0, 0.0, 0.0);
+                        double wingX = px + backX + sideX + Math.cos(yaw) * spread;
+                        double wingZ = pz + backZ + sideZ + Math.sin(yaw) * spread;
+                        client.world.addParticle(p, true, true, wingX, py + height, wingZ, 0.0, 0.0, 0.0);
                     }
                 }
             }
@@ -172,7 +171,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                     double h = 0.5 + i * 0.3;
                     double sway = Math.sin(tick * 0.1 + i) * 0.1;
                     double ox = (Math.random() - 0.5) * 0.3;
-                    client.world.addParticle(p, pos.x + backX + ox + sway, pos.y + h, pos.z + backZ, 0.0, -0.01, 0.0);
+                    client.world.addParticle(p, true, true, px + backX + ox + sway, py + h, pz + backZ, 0.0, -0.01, 0.0);
                 }
             }
         }
@@ -184,10 +183,10 @@ public class ChibiCosmetics implements ClientModInitializer {
                 for (int i = 0; i < 6; i++) {
                     double angle = (Math.PI * 2 / 6) * i + tick * 0.03;
                     double r = 0.25;
-                    client.world.addParticle(p, pos.x + Math.cos(angle) * r, pos.y + 2.1, pos.z + Math.sin(angle) * r, 0.0, 0.01, 0.0);
+                    client.world.addParticle(p, true, true, px + Math.cos(angle) * r, py + 2.1, pz + Math.sin(angle) * r, 0.0, 0.01, 0.0);
                 }
                 // Crown center
-                client.world.addParticle(p, pos.x, pos.y + 2.25, pos.z, 0.0, 0.0, 0.0);
+                client.world.addParticle(p, true, true, px, py + 2.25, pz, 0.0, 0.0, 0.0);
             }
         }
 
@@ -197,14 +196,14 @@ public class ChibiCosmetics implements ClientModInitializer {
             if (p != null) {
                 double orbitAngle = tick * 0.06;
                 double orbitR = 1.5;
-                double petX = pos.x + Math.cos(orbitAngle) * orbitR;
-                double petZ = pos.z + Math.sin(orbitAngle) * orbitR;
-                double petY = pos.y + 0.5 + Math.sin(tick * 0.1) * 0.2;
+                double petX = px + Math.cos(orbitAngle) * orbitR;
+                double petZ = pz + Math.sin(orbitAngle) * orbitR;
+                double petY = py + 0.5 + Math.sin(tick * 0.1) * 0.2;
                 for (int i = 0; i < 4; i++) {
                     double ox = (Math.random() - 0.5) * 0.3;
                     double oy = Math.random() * 0.4;
                     double oz = (Math.random() - 0.5) * 0.3;
-                    client.world.addParticle(p, petX + ox, petY + oy, petZ + oz, 0.0, 0.01, 0.0);
+                    client.world.addParticle(p, true, true, petX + ox, petY + oy, petZ + oz, 0.0, 0.01, 0.0);
                 }
             }
         }
@@ -217,7 +216,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                     double angle = Math.random() * Math.PI * 2;
                     double r = Math.random() * 1.0;
                     double vy = 0.1 + Math.random() * 0.2;
-                    client.world.addParticle(p, pos.x + Math.cos(angle) * r, pos.y + 1.0, pos.z + Math.sin(angle) * r, 0.0, vy, 0.0);
+                    client.world.addParticle(p, true, true, px + Math.cos(angle) * r, py + 1.0, pz + Math.sin(angle) * r, 0.0, vy, 0.0);
                 }
             }
         }
@@ -231,7 +230,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                 for (int i = 0; i < 6; i++) {
                     double h = 0.3 + i * 0.35;
                     double sway = Math.sin(tick * 0.08 + i * 0.5) * 0.08;
-                    client.world.addParticle(p, pos.x + backX + sway, pos.y + h, pos.z + backZ, 0.0, 0.0, 0.0);
+                    client.world.addParticle(p, true, true, px + backX + sway, py + h, pz + backZ, 0.0, 0.0, 0.0);
                 }
             }
         }
@@ -245,7 +244,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                 for (int i = 0; i < 5; i++) {
                     double ox = (Math.random() - 0.5) * 0.3;
                     double oy = (Math.random() - 0.5) * 0.3;
-                    client.world.addParticle(p, pos.x + faceX + ox, pos.y + 1.7 + oy, pos.z + faceZ, 0.0, 0.0, 0.0);
+                    client.world.addParticle(p, true, true, px + faceX + ox, py + 1.7 + oy, pz + faceZ, 0.0, 0.0, 0.0);
                 }
             }
         }
@@ -257,7 +256,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                 for (int i = 0; i < 4; i++) {
                     double ox = (Math.random() - 0.5) * 0.8;
                     double oz = (Math.random() - 0.5) * 1.2;
-                    client.world.addParticle(p, pos.x + ox, pos.y + 0.05, pos.z + oz, 0.0, 0.03, 0.0);
+                    client.world.addParticle(p, true, true, px + ox, py + 0.05, pz + oz, 0.0, 0.03, 0.0);
                 }
             }
         }
@@ -267,12 +266,12 @@ public class ChibiCosmetics implements ClientModInitializer {
             ParticleEffect p = mapParticle(data.accessories, "acc");
             if (p != null) {
                 // Shoulder particles
-                double rightX = pos.x + Math.cos(yaw) * 0.35;
-                double rightZ = pos.z + Math.sin(yaw) * 0.35;
-                client.world.addParticle(p, rightX, pos.y + 1.5, rightZ, 0.0, 0.01, 0.0);
-                double leftX = pos.x - Math.cos(yaw) * 0.35;
-                double leftZ = pos.z - Math.sin(yaw) * 0.35;
-                client.world.addParticle(p, leftX, pos.y + 1.5, leftZ, 0.0, 0.01, 0.0);
+                double rightX = px + Math.cos(yaw) * 0.35;
+                double rightZ = pz + Math.sin(yaw) * 0.35;
+                client.world.addParticle(p, true, true, rightX, py + 1.5, rightZ, 0.0, 0.01, 0.0);
+                double leftX = px - Math.cos(yaw) * 0.35;
+                double leftZ = pz - Math.sin(yaw) * 0.35;
+                client.world.addParticle(p, true, true, leftX, py + 1.5, leftZ, 0.0, 0.01, 0.0);
             }
         }
         } catch (Exception e) {
