@@ -1224,10 +1224,8 @@ async function doLaunchGame(p, mcVersion, instId) {
       }
     }
 
-    // Auto-install Chibi Cosmetics mod
-    if (instId) {
-      await ensureCosmeticsMod(instId);
-    }
+    // Cosmetics mod deaktiviert bis API-Kompatibilitaet gefixt ist
+    // if (instId) { await ensureCosmeticsMod(instId); }
 
     // Copy instance mods/resourcepacks/shaders into MC game directory
     const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
