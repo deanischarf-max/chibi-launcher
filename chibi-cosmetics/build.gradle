@@ -1,0 +1,22 @@
+plugins {
+    id 'fabric-loom' version '1.13-SNAPSHOT'
+}
+group = 'art.chibi'
+version = '1.0.0'
+repositories {
+    mavenCentral()
+    maven { url 'https://maven.fabricmc.net/' }
+}
+dependencies {
+    minecraft "com.mojang:minecraft:1.21.11"
+    mappings "net.fabricmc:yarn:1.21.11+build.4:v2"
+    modImplementation "net.fabricmc:fabric-loader:0.16.14"
+    modImplementation fabricApi.module("fabric-lifecycle-events-v1", "0.141.3+1.21.11")
+    modImplementation fabricApi.module("fabric-rendering-v1", "0.141.3+1.21.11")
+}
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+}
+jar {
+    archiveFileName = "ChibiCosmetics-${version}.jar"
+}

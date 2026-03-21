@@ -867,6 +867,34 @@ async function downloadJava() {
   });
 }
 
+// ── Chibi Cosmetics Mod Auto-Install ──
+const COSMETICS_MOD_URL = 'https://github.com/deanischarf-max/chibi-launcher/releases/latest/download/ChibiCosmetics-1.0.0.jar';
+const COSMETICS_MOD_NAME = 'ChibiCosmetics-1.0.0.jar';
+
+async function ensureCosmeticsMod(instId) {
+  try {
+    const modsDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, 'mods');
+    const modPath = path.join(modsDir, COSMETICS_MOD_NAME);
+    if (fs.existsSync(modPath)) return; // Already installed
+    fs.mkdirSync(modsDir, { recursive: true });
+    console.log('[Cosmetics] Downloading ChibiCosmetics mod...');
+    await downloadFile(COSMETICS_MOD_URL, modPath);
+    console.log('[Cosmetics] Installed:', modPath);
+    // Track in instance data
+    const instances = store.get('instances', []);
+    const inst = instances.find(i => i.id === instId);
+    if (inst) {
+      if (!inst.mods) inst.mods = [];
+      if (!inst.mods.some(m => m.file === COSMETICS_MOD_NAME)) {
+        inst.mods.push({ name: 'chibi-cosmetics', file: COSMETICS_MOD_NAME, title: 'Chibi Cosmetics', icon: '' });
+        store.set('instances', instances);
+      }
+    }
+  } catch(e) {
+    console.warn('[Cosmetics] Auto-install failed:', e.message);
+  }
+}
+
 // ── Fabric Loader Installation (via official Fabric Installer JAR) ──
 function fabricGet(urlPath) {
   return new Promise((resolve, reject) => {
@@ -1152,6 +1180,11 @@ async function doLaunchGame(p, mcVersion, instId) {
         const osHint = process.platform === 'win32' ? 'os=windows' : process.platform === 'darwin' ? 'os=mac' : 'os=linux';
         return { success: false, error: `Java nicht gefunden!\nhttps://adoptium.net/de/temurin/releases/?${osHint}&arch=x64&package=jre&version=21` };
       }
+    }
+
+    // Auto-install Chibi Cosmetics mod
+    if (instId) {
+      await ensureCosmeticsMod(instId);
     }
 
     // Copy instance mods/resourcepacks/shaders into MC game directory
