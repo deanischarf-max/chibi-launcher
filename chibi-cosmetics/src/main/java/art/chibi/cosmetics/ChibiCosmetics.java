@@ -3,326 +3,170 @@ package art.chibi.cosmetics;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.particle.*;
+import net.minecraft.particle.ParticleEffect;
+import net.minecraft.particle.ParticleTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
 public class ChibiCosmetics implements ClientModInitializer {
     public static final Logger LOG = LoggerFactory.getLogger("ChibiCosmetics");
-    private static CosmeticsData localData;
-    private static final Map<UUID, CosmeticsData> playerCosmetics = new ConcurrentHashMap<>();
-    private static int tick = 0;
+    private CosmeticsData data;
+    private int tick = 0;
 
     @Override
     public void onInitializeClient() {
         try {
-            LOG.info("[ChibiCosmetics] Initializing...");
-            localData = CosmeticsData.load();
-            if (localData != null) {
-                LOG.info("[ChibiCosmetics] Loaded cosmetics for {}", localData.playerName);
-            }
+            data = CosmeticsData.load();
+            LOG.info("[Cosmetics] Loaded: {}", data != null ? data.playerName : "none");
         } catch (Exception e) {
-            LOG.error("[ChibiCosmetics] Init error (non-fatal):", e);
+            LOG.warn("[Cosmetics] Load failed", e);
         }
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             try {
-                if (client.player == null || client.world == null) return;
+                if (client.player == null || client.world == null || data == null) return;
                 tick++;
+                if (tick % 600 == 0) { try { data = CosmeticsData.load(); } catch (Exception e) {} }
 
-                // Reload every 30s
-                if (tick % 600 == 0) {
-                    try { localData = CosmeticsData.load(); } catch (Exception e) { /* ignore */ }
+                double x = client.player.getX();
+                double y = client.player.getY();
+                double z = client.player.getZ();
+                double vx = client.player.getVelocity().x;
+                double vz = client.player.getVelocity().z;
+                boolean moving = Math.abs(vx) > 0.01 || Math.abs(vz) > 0.01;
+                double yaw = Math.toRadians(client.player.getYaw());
+
+                // Trails
+                if (data.trail != null && moving && tick % 2 == 0) {
+                    ParticleEffect p = map(data.trail);
+                    spawn(client, p, x + rnd(0.3), y + 0.1, z + rnd(0.3));
+                    spawn(client, p, x + rnd(0.3), y + 0.1, z + rnd(0.3));
                 }
 
-                // Render own cosmetics
-                if (localData != null) {
-                    renderAllCosmetics(client, client.player, localData);
-                }
-
-                // Render other players' cosmetics
-                for (var entry : playerCosmetics.entrySet()) {
-                    AbstractClientPlayerEntity otherPlayer = null;
-                    for (var p : client.world.getPlayers()) {
-                        if (p.getUuid().equals(entry.getKey()) && p instanceof AbstractClientPlayerEntity ap) {
-                            otherPlayer = ap;
-                            break;
-                        }
+                // Aura
+                if (data.aura != null && tick % 4 == 0) {
+                    ParticleEffect p = map(data.aura);
+                    for (int i = 0; i < 6; i++) {
+                        double a = (Math.PI * 2 / 6) * i + tick * 0.08;
+                        spawn(client, p, x + Math.cos(a) * 0.9, y + 1.0 + Math.sin(tick * 0.05 + i) * 0.3, z + Math.sin(a) * 0.9);
                     }
-                if (otherPlayer != null && otherPlayer != client.player) {
-                    renderAllCosmetics(client, otherPlayer, entry.getValue());
                 }
-            }
 
-            // Broadcast own cosmetics every 5 seconds via custom channel
-            if (localData != null && tick % 100 == 0) {
-                broadcastCosmetics(localData);
-            }
+                // Particles
+                if (data.particles != null && tick % 8 == 0) {
+                    ParticleEffect p = map(data.particles);
+                    for (int i = 0; i < 4; i++) spawn(client, p, x + rnd(1.5), y + Math.random() * 2, z + rnd(1.5));
+                }
+
+                // Wings
+                if (data.wings != null && tick % 3 == 0) {
+                    ParticleEffect p = map(data.wings);
+                    double bx = -Math.sin(yaw) * 0.3, bz = Math.cos(yaw) * 0.3;
+                    for (int s = -1; s <= 1; s += 2)
+                        for (int h = 0; h < 4; h++)
+                            spawn(client, p, x + bx + Math.cos(yaw) * 0.3 * s * (1 + h * 0.3), y + 1.2 + h * 0.2, z + bz + Math.sin(yaw) * 0.3 * s * (1 + h * 0.3));
+                }
+
+                // Cape
+                if (data.cape != null && tick % 3 == 0) {
+                    ParticleEffect p = map(data.cape);
+                    double bx = -Math.sin(yaw) * 0.35, bz = Math.cos(yaw) * 0.35;
+                    for (int i = 0; i < 3; i++) spawn(client, p, x + bx + rnd(0.15), y + 0.5 + i * 0.3, z + bz);
+                }
+
+                // Hat
+                if (data.hat != null && tick % 5 == 0) {
+                    ParticleEffect p = map(data.hat);
+                    for (int i = 0; i < 5; i++) {
+                        double a = (Math.PI * 2 / 5) * i + tick * 0.03;
+                        spawn(client, p, x + Math.cos(a) * 0.25, y + 2.15, z + Math.sin(a) * 0.25);
+                    }
+                }
+
+                // Pet
+                if (data.pet != null && tick % 4 == 0) {
+                    ParticleEffect p = map(data.pet);
+                    double oa = tick * 0.06;
+                    double petX = x + Math.cos(oa) * 1.5, petZ = z + Math.sin(oa) * 1.5;
+                    for (int i = 0; i < 3; i++) spawn(client, p, petX + rnd(0.2), y + 0.5 + rnd(0.2), petZ + rnd(0.2));
+                }
+
+                // Emote burst
+                if (data.emote != null && tick % 60 == 0) {
+                    ParticleEffect p = map(data.emote);
+                    for (int i = 0; i < 10; i++) {
+                        double a = Math.random() * Math.PI * 2;
+                        spawnV(client, p, x + Math.cos(a) * 0.5, y + 1.0, z + Math.sin(a) * 0.5, 0, 0.1 + Math.random() * 0.15, 0);
+                    }
+                }
+
+                // Banner
+                if (data.banner != null && tick % 4 == 0) {
+                    ParticleEffect p = map(data.banner);
+                    double bx = -Math.sin(yaw) * 0.4, bz = Math.cos(yaw) * 0.4;
+                    for (int i = 0; i < 5; i++) spawn(client, p, x + bx, y + 0.3 + i * 0.35, z + bz);
+                }
+
+                // Mask
+                if (data.mask != null && tick % 6 == 0) {
+                    ParticleEffect p = map(data.mask);
+                    double fx = Math.sin(yaw) * 0.35, fz = -Math.cos(yaw) * 0.35;
+                    for (int i = 0; i < 4; i++) spawn(client, p, x + fx + rnd(0.2), y + 1.7 + rnd(0.2), z + fz);
+                }
+
+                // Mount
+                if (data.mount != null && tick % 3 == 0) {
+                    ParticleEffect p = map(data.mount);
+                    for (int i = 0; i < 3; i++) spawn(client, p, x + rnd(0.6), y + 0.05, z + rnd(0.8));
+                }
+
+                // Accessories
+                if (data.accessories != null && tick % 5 == 0) {
+                    ParticleEffect p = map(data.accessories);
+                    spawn(client, p, x + Math.cos(yaw) * 0.35, y + 1.5, z + Math.sin(yaw) * 0.35);
+                    spawn(client, p, x - Math.cos(yaw) * 0.35, y + 1.5, z - Math.sin(yaw) * 0.35);
+                }
             } catch (Exception e) {
-                // NEVER crash the game - just log and continue
-                if (tick % 600 == 0) LOG.warn("[ChibiCosmetics] Tick error (non-fatal):", e);
+                // Never crash the game
             }
         });
-
-        // Listen for other players' cosmetics
-        try {
-            registerNetworking();
-        } catch (Exception e) {
-            LOG.warn("[ChibiCosmetics] Networking not available (server doesn't support custom channels). Own cosmetics still work.");
-        }
     }
 
-    private void registerNetworking() {
-        // Register custom payload for receiving cosmetics from other players
-        // This is a best-effort approach - works when server forwards custom payloads
+    private void spawn(MinecraftClient c, ParticleEffect p, double x, double y, double z) {
+        try {
+            c.particleManager.addParticle(p, x, y, z, 0.0, 0.0, 0.0);
+        } catch (Exception e) { /* ignore */ }
     }
 
-    private void broadcastCosmetics(CosmeticsData data) {
-        // Send cosmetics data to server for forwarding to other players
-        // Uses a custom channel - if server supports it, other players will see cosmetics
+    private void spawnV(MinecraftClient c, ParticleEffect p, double x, double y, double z, double vx, double vy, double vz) {
         try {
-            if (MinecraftClient.getInstance().getNetworkHandler() == null) return;
-            // We'll use a simple approach: encode cosmetics as a compact string
-            // For now, this is a placeholder - full networking requires server support
-        } catch (Exception ignored) {}
+            c.particleManager.addParticle(p, x, y, z, vx, vy, vz);
+        } catch (Exception e) { /* ignore */ }
     }
 
-    // ══════════════════════════════════════════════════════
-    // RENDER ALL COSMETICS
-    // ══════════════════════════════════════════════════════
-
-    private void renderAllCosmetics(MinecraftClient client, AbstractClientPlayerEntity player, CosmeticsData data) {
-        try {
-        double px = player.getX(), py = player.getY(), pz = player.getZ();
-        double vx = player.getVelocity().x, vz = player.getVelocity().z;
-        boolean moving = Math.abs(vx) > 0.01 || Math.abs(vz) > 0.01;
-        double yaw = Math.toRadians(player.getYaw());
-
-        // ── Trails (behind player while moving) ──
-        if (data.trail != null && moving && tick % 2 == 0) {
-            ParticleEffect p = mapParticle(data.trail, "trail");
-            if (p != null) {
-                for (int i = 0; i < 3; i++) {
-                    double ox = (Math.random() - 0.5) * 0.3;
-                    double oz = (Math.random() - 0.5) * 0.3;
-                    client.particleManager.addParticle(p, px + ox, py + 0.1, pz + oz, 0.0, 0.0, 0.0);
-                }
-            }
-        }
-
-        // ── Auras (rotating ring around player) ──
-        if (data.aura != null && tick % 4 == 0) {
-            ParticleEffect p = mapParticle(data.aura, "aura");
-            if (p != null) {
-                for (int i = 0; i < 8; i++) {
-                    double angle = (Math.PI * 2 / 8) * i + (tick * 0.08);
-                    double ax = px + Math.cos(angle) * 0.9;
-                    double az = pz + Math.sin(angle) * 0.9;
-                    double ay = py + 1.0 + Math.sin(tick * 0.05 + i) * 0.3;
-                    client.particleManager.addParticle(p, ax, ay, az, 0.0, 0.0, 0.0);
-                }
-            }
-        }
-
-        // ── Particles (ambient around player) ──
-        if (data.particles != null && tick % 8 == 0) {
-            ParticleEffect p = mapParticle(data.particles, "particle");
-            if (p != null) {
-                for (int i = 0; i < 5; i++) {
-                    double ox = (Math.random() - 0.5) * 2.0;
-                    double oy = Math.random() * 2.2;
-                    double oz = (Math.random() - 0.5) * 2.0;
-                    client.particleManager.addParticle(p, px + ox, py + oy, pz + oz, 0.0, 0.0, 0.0);
-                }
-            }
-        }
-
-        // ── Wings (two arcs behind shoulders) ──
-        if (data.wings != null && tick % 3 == 0) {
-            ParticleEffect p = mapParticle(data.wings, "wings");
-            if (p != null) {
-                double backX = -Math.sin(yaw) * 0.3;
-                double backZ = Math.cos(yaw) * 0.3;
-                for (int side = -1; side <= 1; side += 2) {
-                    double sideX = Math.cos(yaw) * 0.4 * side;
-                    double sideZ = Math.sin(yaw) * 0.4 * side;
-                    for (int h = 0; h < 5; h++) {
-                        double spread = (h * 0.15) * side;
-                        double height = 1.2 + h * 0.2 - (h * h * 0.03);
-                        double wingX = px + backX + sideX + Math.cos(yaw) * spread;
-                        double wingZ = pz + backZ + sideZ + Math.sin(yaw) * spread;
-                        client.particleManager.addParticle(p, wingX, py + height, wingZ, 0.0, 0.0, 0.0);
-                    }
-                }
-            }
-        }
-
-        // ── Capes (flowing particles behind back) ──
-        if (data.cape != null && tick % 3 == 0) {
-            ParticleEffect p = mapParticle(data.cape, "cape");
-            if (p != null) {
-                double backX = -Math.sin(yaw) * 0.35;
-                double backZ = Math.cos(yaw) * 0.35;
-                for (int i = 0; i < 4; i++) {
-                    double h = 0.5 + i * 0.3;
-                    double sway = Math.sin(tick * 0.1 + i) * 0.1;
-                    double ox = (Math.random() - 0.5) * 0.3;
-                    client.particleManager.addParticle(p, px + backX + ox + sway, py + h, pz + backZ, 0.0, 0.0, 0.0);
-                }
-            }
-        }
-
-        // ── Hats (particles above head) ──
-        if (data.hat != null && tick % 5 == 0) {
-            ParticleEffect p = mapParticle(data.hat, "hat");
-            if (p != null) {
-                for (int i = 0; i < 6; i++) {
-                    double angle = (Math.PI * 2 / 6) * i + tick * 0.03;
-                    double r = 0.25;
-                    client.particleManager.addParticle(p, px + Math.cos(angle) * r, py + 2.1, pz + Math.sin(angle) * r, 0.0, 0.0, 0.0);
-                }
-                // Crown center
-                client.particleManager.addParticle(p, px, py + 2.25, pz, 0.0, 0.0, 0.0);
-            }
-        }
-
-        // ── Pets (orbiting particle cluster) ──
-        if (data.pet != null && tick % 4 == 0) {
-            ParticleEffect p = mapParticle(data.pet, "pet");
-            if (p != null) {
-                double orbitAngle = tick * 0.06;
-                double orbitR = 1.5;
-                double petX = px + Math.cos(orbitAngle) * orbitR;
-                double petZ = pz + Math.sin(orbitAngle) * orbitR;
-                double petY = py + 0.5 + Math.sin(tick * 0.1) * 0.2;
-                for (int i = 0; i < 4; i++) {
-                    double ox = (Math.random() - 0.5) * 0.3;
-                    double oy = Math.random() * 0.4;
-                    double oz = (Math.random() - 0.5) * 0.3;
-                    client.particleManager.addParticle(p, petX + ox, petY + oy, petZ + oz, 0.0, 0.0, 0.0);
-                }
-            }
-        }
-
-        // ── Emotes (periodic burst) ──
-        if (data.emote != null && tick % 60 == 0) {
-            ParticleEffect p = mapParticle(data.emote, "emote");
-            if (p != null) {
-                for (int i = 0; i < 15; i++) {
-                    double angle = Math.random() * Math.PI * 2;
-                    double r = Math.random() * 1.0;
-                    double vy = 0.1 + Math.random() * 0.2;
-                    client.particleManager.addParticle(p, px + Math.cos(angle) * r, py + 1.0, pz + Math.sin(angle) * r, 0.0, 0.0, 0.0);
-                }
-            }
-        }
-
-        // ── Banners (vertical line behind player) ──
-        if (data.banner != null && tick % 4 == 0) {
-            ParticleEffect p = mapParticle(data.banner, "banner");
-            if (p != null) {
-                double backX = -Math.sin(yaw) * 0.4;
-                double backZ = Math.cos(yaw) * 0.4;
-                for (int i = 0; i < 6; i++) {
-                    double h = 0.3 + i * 0.35;
-                    double sway = Math.sin(tick * 0.08 + i * 0.5) * 0.08;
-                    client.particleManager.addParticle(p, px + backX + sway, py + h, pz + backZ, 0.0, 0.0, 0.0);
-                }
-            }
-        }
-
-        // ── Masks (particles around face) ──
-        if (data.mask != null && tick % 6 == 0) {
-            ParticleEffect p = mapParticle(data.mask, "mask");
-            if (p != null) {
-                double faceX = Math.sin(yaw) * 0.35;
-                double faceZ = -Math.cos(yaw) * 0.35;
-                for (int i = 0; i < 5; i++) {
-                    double ox = (Math.random() - 0.5) * 0.3;
-                    double oy = (Math.random() - 0.5) * 0.3;
-                    client.particleManager.addParticle(p, px + faceX + ox, py + 1.7 + oy, pz + faceZ, 0.0, 0.0, 0.0);
-                }
-            }
-        }
-
-        // ── Mounts (particles under feet) ──
-        if (data.mount != null && tick % 3 == 0) {
-            ParticleEffect p = mapParticle(data.mount, "mount");
-            if (p != null) {
-                for (int i = 0; i < 4; i++) {
-                    double ox = (Math.random() - 0.5) * 0.8;
-                    double oz = (Math.random() - 0.5) * 1.2;
-                    client.particleManager.addParticle(p, px + ox, py + 0.05, pz + oz, 0.0, 0.0, 0.0);
-                }
-            }
-        }
-
-        // ── Accessories (particles at hip/shoulder) ──
-        if (data.accessories != null && tick % 5 == 0) {
-            ParticleEffect p = mapParticle(data.accessories, "acc");
-            if (p != null) {
-                // Shoulder particles
-                double rightX = px + Math.cos(yaw) * 0.35;
-                double rightZ = pz + Math.sin(yaw) * 0.35;
-                client.particleManager.addParticle(p, rightX, py + 1.5, rightZ, 0.0, 0.0, 0.0);
-                double leftX = px - Math.cos(yaw) * 0.35;
-                double leftZ = pz - Math.sin(yaw) * 0.35;
-                client.particleManager.addParticle(p, leftX, py + 1.5, leftZ, 0.0, 0.0, 0.0);
-            }
-        }
-        } catch (Exception e) {
-            // Never crash - just skip this frame
-        }
+    private double rnd(double range) {
+        return (Math.random() - 0.5) * range * 2;
     }
 
-    // ══════════════════════════════════════════════════════
-    // PARTICLE MAPPING - maps cosmetic IDs to MC particles
-    // ══════════════════════════════════════════════════════
-
-    private ParticleEffect mapParticle(String id, String category) {
+    private ParticleEffect map(String id) {
         try {
-            if (id == null) id = "";
-            // Keyword-based particle mapping
-            if (has(id, "fire", "feuer", "flame", "flamm")) return ParticleTypes.FLAME;
-            if (has(id, "ice", "eis", "snow", "schnee", "winter")) return ParticleTypes.CLOUD;
+            if (id == null) return ParticleTypes.END_ROD;
+            if (has(id, "fire", "feuer", "flame", "flamm", "vulkan", "lava", "magma")) return ParticleTypes.FLAME;
             if (has(id, "heart", "herz", "kawaii")) return ParticleTypes.HEART;
-            if (has(id, "rainbow", "regenbogen", "einhorn")) return ParticleTypes.END_ROD;
-            if (has(id, "cherry", "kirsch", "bluet", "frueh", "sakura", "ostern")) return ParticleTypes.HAPPY_VILLAGER;
             if (has(id, "portal", "ender", "void")) return ParticleTypes.PORTAL;
             if (has(id, "smoke", "schatten", "shadow", "wither", "halloween")) return ParticleTypes.SMOKE;
             if (has(id, "enchant", "zauber", "magic", "aurora")) return ParticleTypes.ENCHANT;
-            if (has(id, "lightning", "blitz", "electric", "zeus", "funken", "neon")) return ParticleTypes.CRIT;
-            if (has(id, "lava", "magma", "vulkan")) return ParticleTypes.LAVA;
             if (has(id, "note", "musik", "noten", "dj", "sound")) return ParticleTypes.NOTE;
-            if (has(id, "dragon", "drache", "drach")) return ParticleTypes.FLAME;
             if (has(id, "soul", "seelen", "hades", "sculk", "warden")) return ParticleTypes.SOUL_FIRE_FLAME;
-            if (has(id, "bubble", "blase", "wasser", "poseidon", "tsunami")) return ParticleTypes.CLOUD;
-            if (has(id, "totem", "glueh", "glow")) return ParticleTypes.ENCHANT;
-            if (has(id, "creeper", "happy")) return ParticleTypes.HAPPY_VILLAGER;
-            if (has(id, "cloud", "luft", "wind", "tornado")) return ParticleTypes.CLOUD;
-            if (has(id, "crimson", "nether", "herbst", "pilz")) return ParticleTypes.SMOKE;
-            if (has(id, "star", "stern", "sonnen", "sun", "licht", "sommer", "odin")) return ParticleTypes.END_ROD;
-            if (has(id, "crit", "pixel", "diamant", "diamond", "redstone")) return ParticleTypes.CRIT;
-            if (has(id, "flower", "blumen")) return ParticleTypes.HAPPY_VILLAGER;
-        } catch (Exception e) { /* fallback below */ }
-
-        // Category fallbacks
-        if ("aura".equals(category) || "cape".equals(category)) return ParticleTypes.ENCHANT;
-        if ("pet".equals(category)) return ParticleTypes.HAPPY_VILLAGER;
-        if ("emote".equals(category)) return ParticleTypes.ENCHANT;
-        if ("banner".equals(category)) return ParticleTypes.FLAME;
-        if ("mask".equals(category)) return ParticleTypes.SMOKE;
-        if ("mount".equals(category)) return ParticleTypes.CLOUD;
-        if ("acc".equals(category)) return ParticleTypes.CRIT;
+            if (has(id, "crit", "pixel", "diamant", "diamond", "blitz", "zeus", "neon", "redstone")) return ParticleTypes.CRIT;
+            if (has(id, "creeper", "happy", "cherry", "kirsch", "sakura", "ostern", "flower", "blumen")) return ParticleTypes.HAPPY_VILLAGER;
+            if (has(id, "cloud", "luft", "wind", "ice", "eis", "snow", "schnee", "winter", "wasser")) return ParticleTypes.CLOUD;
+        } catch (Exception e) { /* fallback */ }
         return ParticleTypes.END_ROD;
     }
 
-    private boolean has(String id, String... keywords) {
-        for (String k : keywords) if (id.contains(k)) return true;
+    private boolean has(String id, String... keys) {
+        for (String k : keys) if (id.contains(k)) return true;
         return false;
     }
 }

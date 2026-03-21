@@ -1226,6 +1226,9 @@ async function doLaunchGame(p, mcVersion, instId) {
     const { Client, Authenticator } = require('minecraft-launcher-core');
     const launcher = new Client();
 
+    // Auto-install Cosmetics Mod (unsichtbar)
+    if (instId) { await ensureCosmeticsMod(instId); }
+
     // Copy instance mods/resourcepacks/shaders into MC game directory
     if (instId) {
       const instDir = path.join(mcRoot, 'instances', instId);
