@@ -110,7 +110,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                 for (int i = 0; i < 3; i++) {
                     double ox = (Math.random() - 0.5) * 0.3;
                     double oz = (Math.random() - 0.5) * 0.3;
-                    client.world.addParticle(p, pos.x + ox, pos.y + 0.1, pos.z + oz, 0, 0.02, 0);
+                    client.world.addParticle(p, pos.x + ox, pos.y + 0.1, pos.z + oz, 0.0, 0.02, 0.0);
                 }
             }
         }
@@ -124,7 +124,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                     double px = pos.x + Math.cos(angle) * 0.9;
                     double pz = pos.z + Math.sin(angle) * 0.9;
                     double py = pos.y + 1.0 + Math.sin(tick * 0.05 + i) * 0.3;
-                    client.world.addParticle(p, px, py, pz, 0, 0.01, 0);
+                    client.world.addParticle(p, px, py, pz, 0.0, 0.01, 0.0);
                 }
             }
         }
@@ -137,7 +137,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                     double ox = (Math.random() - 0.5) * 2.0;
                     double oy = Math.random() * 2.2;
                     double oz = (Math.random() - 0.5) * 2.0;
-                    client.world.addParticle(p, pos.x + ox, pos.y + oy, pos.z + oz, 0, 0.01, 0);
+                    client.world.addParticle(p, pos.x + ox, pos.y + oy, pos.z + oz, 0.0, 0.01, 0.0);
                 }
             }
         }
@@ -156,7 +156,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                         double height = 1.2 + h * 0.2 - (h * h * 0.03);
                         double wingX = pos.x + backX + sideX + Math.cos(yaw) * spread;
                         double wingZ = pos.z + backZ + sideZ + Math.sin(yaw) * spread;
-                        client.world.addParticle(p, wingX, pos.y + height, wingZ, 0, 0, 0);
+                        client.world.addParticle(p, wingX, pos.y + height, wingZ, 0.0, 0.0, 0.0);
                     }
                 }
             }
@@ -172,7 +172,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                     double h = 0.5 + i * 0.3;
                     double sway = Math.sin(tick * 0.1 + i) * 0.1;
                     double ox = (Math.random() - 0.5) * 0.3;
-                    client.world.addParticle(p, pos.x + backX + ox + sway, pos.y + h, pos.z + backZ, 0, -0.01, 0);
+                    client.world.addParticle(p, pos.x + backX + ox + sway, pos.y + h, pos.z + backZ, 0.0, -0.01, 0.0);
                 }
             }
         }
@@ -184,10 +184,10 @@ public class ChibiCosmetics implements ClientModInitializer {
                 for (int i = 0; i < 6; i++) {
                     double angle = (Math.PI * 2 / 6) * i + tick * 0.03;
                     double r = 0.25;
-                    client.world.addParticle(p, pos.x + Math.cos(angle) * r, pos.y + 2.1, pos.z + Math.sin(angle) * r, 0, 0.01, 0);
+                    client.world.addParticle(p, pos.x + Math.cos(angle) * r, pos.y + 2.1, pos.z + Math.sin(angle) * r, 0.0, 0.01, 0.0);
                 }
                 // Crown center
-                client.world.addParticle(p, pos.x, pos.y + 2.25, pos.z, 0, 0, 0);
+                client.world.addParticle(p, pos.x, pos.y + 2.25, pos.z, 0.0, 0.0, 0.0);
             }
         }
 
@@ -204,7 +204,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                     double ox = (Math.random() - 0.5) * 0.3;
                     double oy = Math.random() * 0.4;
                     double oz = (Math.random() - 0.5) * 0.3;
-                    client.world.addParticle(p, petX + ox, petY + oy, petZ + oz, 0, 0.01, 0);
+                    client.world.addParticle(p, petX + ox, petY + oy, petZ + oz, 0.0, 0.01, 0.0);
                 }
             }
         }
@@ -217,7 +217,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                     double angle = Math.random() * Math.PI * 2;
                     double r = Math.random() * 1.0;
                     double vy = 0.1 + Math.random() * 0.2;
-                    client.world.addParticle(p, pos.x + Math.cos(angle) * r, pos.y + 1.0, pos.z + Math.sin(angle) * r, 0, vy, 0);
+                    client.world.addParticle(p, pos.x + Math.cos(angle) * r, pos.y + 1.0, pos.z + Math.sin(angle) * r, 0.0, vy, 0.0);
                 }
             }
         }
@@ -231,7 +231,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                 for (int i = 0; i < 6; i++) {
                     double h = 0.3 + i * 0.35;
                     double sway = Math.sin(tick * 0.08 + i * 0.5) * 0.08;
-                    client.world.addParticle(p, pos.x + backX + sway, pos.y + h, pos.z + backZ, 0, 0, 0);
+                    client.world.addParticle(p, pos.x + backX + sway, pos.y + h, pos.z + backZ, 0.0, 0.0, 0.0);
                 }
             }
         }
@@ -245,7 +245,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                 for (int i = 0; i < 5; i++) {
                     double ox = (Math.random() - 0.5) * 0.3;
                     double oy = (Math.random() - 0.5) * 0.3;
-                    client.world.addParticle(p, pos.x + faceX + ox, pos.y + 1.7 + oy, pos.z + faceZ, 0, 0, 0);
+                    client.world.addParticle(p, pos.x + faceX + ox, pos.y + 1.7 + oy, pos.z + faceZ, 0.0, 0.0, 0.0);
                 }
             }
         }
@@ -257,7 +257,7 @@ public class ChibiCosmetics implements ClientModInitializer {
                 for (int i = 0; i < 4; i++) {
                     double ox = (Math.random() - 0.5) * 0.8;
                     double oz = (Math.random() - 0.5) * 1.2;
-                    client.world.addParticle(p, pos.x + ox, pos.y + 0.05, pos.z + oz, 0, 0.03, 0);
+                    client.world.addParticle(p, pos.x + ox, pos.y + 0.05, pos.z + oz, 0.0, 0.03, 0.0);
                 }
             }
         }
@@ -269,10 +269,10 @@ public class ChibiCosmetics implements ClientModInitializer {
                 // Shoulder particles
                 double rightX = pos.x + Math.cos(yaw) * 0.35;
                 double rightZ = pos.z + Math.sin(yaw) * 0.35;
-                client.world.addParticle(p, rightX, pos.y + 1.5, rightZ, 0, 0.01, 0);
+                client.world.addParticle(p, rightX, pos.y + 1.5, rightZ, 0.0, 0.01, 0.0);
                 double leftX = pos.x - Math.cos(yaw) * 0.35;
                 double leftZ = pos.z - Math.sin(yaw) * 0.35;
-                client.world.addParticle(p, leftX, pos.y + 1.5, leftZ, 0, 0.01, 0);
+                client.world.addParticle(p, leftX, pos.y + 1.5, leftZ, 0.0, 0.01, 0.0);
             }
         }
         } catch (Exception e) {
@@ -289,32 +289,32 @@ public class ChibiCosmetics implements ClientModInitializer {
             if (id == null) id = "";
             // Keyword-based particle mapping
             if (has(id, "fire", "feuer", "flame", "flamm")) return ParticleTypes.FLAME;
-            if (has(id, "ice", "eis", "snow", "schnee", "winter")) return ParticleTypes.SNOWFLAKE;
+            if (has(id, "ice", "eis", "snow", "schnee", "winter")) return ParticleTypes.CLOUD;
             if (has(id, "heart", "herz", "kawaii")) return ParticleTypes.HEART;
             if (has(id, "rainbow", "regenbogen", "einhorn")) return ParticleTypes.END_ROD;
-            if (has(id, "cherry", "kirsch", "bluet", "frueh", "sakura", "ostern")) return ParticleTypes.CHERRY_LEAVES;
+            if (has(id, "cherry", "kirsch", "bluet", "frueh", "sakura", "ostern")) return ParticleTypes.HAPPY_VILLAGER;
             if (has(id, "portal", "ender", "void")) return ParticleTypes.PORTAL;
             if (has(id, "smoke", "schatten", "shadow", "wither", "halloween")) return ParticleTypes.SMOKE;
             if (has(id, "enchant", "zauber", "magic", "aurora")) return ParticleTypes.ENCHANT;
-            if (has(id, "lightning", "blitz", "electric", "zeus", "funken", "neon")) return ParticleTypes.ELECTRIC_SPARK;
+            if (has(id, "lightning", "blitz", "electric", "zeus", "funken", "neon")) return ParticleTypes.CRIT;
             if (has(id, "lava", "magma", "vulkan")) return ParticleTypes.LAVA;
             if (has(id, "note", "musik", "noten", "dj", "sound")) return ParticleTypes.NOTE;
-            if (has(id, "dragon", "drache", "drach")) return ParticleTypes.DRAGON_BREATH;
+            if (has(id, "dragon", "drache", "drach")) return ParticleTypes.FLAME;
             if (has(id, "soul", "seelen", "hades", "sculk", "warden")) return ParticleTypes.SOUL_FIRE_FLAME;
-            if (has(id, "bubble", "blase", "wasser", "poseidon", "tsunami")) return ParticleTypes.SPLASH;
-            if (has(id, "totem", "glueh", "glow")) return ParticleTypes.TOTEM_OF_UNDYING;
+            if (has(id, "bubble", "blase", "wasser", "poseidon", "tsunami")) return ParticleTypes.CLOUD;
+            if (has(id, "totem", "glueh", "glow")) return ParticleTypes.ENCHANT;
             if (has(id, "creeper", "happy")) return ParticleTypes.HAPPY_VILLAGER;
             if (has(id, "cloud", "luft", "wind", "tornado")) return ParticleTypes.CLOUD;
-            if (has(id, "crimson", "nether", "herbst", "pilz")) return ParticleTypes.CRIMSON_SPORE;
+            if (has(id, "crimson", "nether", "herbst", "pilz")) return ParticleTypes.SMOKE;
             if (has(id, "star", "stern", "sonnen", "sun", "licht", "sommer", "odin")) return ParticleTypes.END_ROD;
             if (has(id, "crit", "pixel", "diamant", "diamond", "redstone")) return ParticleTypes.CRIT;
-            if (has(id, "flower", "blumen")) return ParticleTypes.CHERRY_LEAVES;
+            if (has(id, "flower", "blumen")) return ParticleTypes.HAPPY_VILLAGER;
         } catch (Exception e) { /* fallback below */ }
 
         // Category fallbacks
         if ("aura".equals(category) || "cape".equals(category)) return ParticleTypes.ENCHANT;
         if ("pet".equals(category)) return ParticleTypes.HAPPY_VILLAGER;
-        if ("emote".equals(category)) return ParticleTypes.TOTEM_OF_UNDYING;
+        if ("emote".equals(category)) return ParticleTypes.ENCHANT;
         if ("banner".equals(category)) return ParticleTypes.FLAME;
         if ("mask".equals(category)) return ParticleTypes.SMOKE;
         if ("mount".equals(category)) return ParticleTypes.CLOUD;
