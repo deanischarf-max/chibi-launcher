@@ -76,6 +76,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.api.onLaunchProgress(p => { if(p.type) document.getElementById('play-status').innerHTML='<div class="spinner"></div><span>'+p.type+' ('+Math.round((p.task/p.total)*100)+'%)</span>'; });
   window.api.onUpdateStatus(msg => toast(msg));
 
+  // Update Banner
+  window.api.onUpdateAvailable((info) => {
+    document.getElementById('update-version').textContent = 'Version ' + info.version + ' ist verfuegbar';
+    document.getElementById('update-banner').classList.remove('hidden');
+  });
+  window.api.onUpdateProgress((percent) => {
+    document.getElementById('update-progress').classList.remove('hidden');
+    document.getElementById('update-bar-fill').style.width = percent + '%';
+    document.getElementById('update-percent').textContent = percent + '%';
+  });
+  window.api.onUpdateError((err) => {
+    toast('Update-Fehler: ' + err);
+    document.getElementById('btn-update').textContent = 'Erneut versuchen';
+    document.getElementById('btn-update').disabled = false;
+    document.getElementById('update-progress').classList.add('hidden');
+  });
+  document.getElementById('btn-update').onclick = async () => {
+    document.getElementById('btn-update').textContent = 'Wird heruntergeladen...';
+    document.getElementById('btn-update').disabled = true;
+    document.getElementById('update-progress').classList.remove('hidden');
+    await window.api.startUpdate();
+  };
+
   // ── Browse Tab ──
   document.querySelectorAll('.src-btn').forEach(b => b.onclick = () => { document.querySelectorAll('.src-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); browseType=b.dataset.btype; searchBrowse(''); });
   document.getElementById('browse-search-btn').onclick = () => searchBrowse(document.getElementById('browse-search').value);

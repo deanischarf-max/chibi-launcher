@@ -191,5 +191,18 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .installed-tag .remove{cursor:pointer;color:var(--muted);font-size:14px;font-weight:700}
 .installed-tag .remove:hover{color:#ff6b6b}
 
+/* Update Banner */
+.update-banner{position:fixed;top:36px;left:0;right:0;z-index:900;background:linear-gradient(135deg,rgba(27,217,106,.15),rgba(27,217,106,.05));border-bottom:1px solid rgba(27,217,106,.3);padding:14px 24px;animation:slideDown .3s ease}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.update-content{display:flex;align-items:center;gap:14px}
+.update-icon{font-size:28px}
+.update-text{flex:1}
+.update-title{font-weight:700;font-size:15px;color:var(--green)}
+.update-version{font-size:12px;color:var(--dim)}
+.update-progress{margin-top:10px}
+.update-bar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.update-bar-fill{height:100%;background:var(--green);border-radius:3px;transition:width .3s ease;width:0}
+.update-percent{text-align:center;font-size:12px;color:var(--dim);margin-top:4px}
+
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);padding:10px 22px;border-radius:var(--r);font-size:13px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,.3);z-index:2000}
 ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:0 0}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
