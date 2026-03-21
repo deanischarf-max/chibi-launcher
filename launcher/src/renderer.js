@@ -77,6 +77,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.api.onUpdateStatus(msg => toast(msg));
 
   // Update Banner
+  window.api.onUpdateChecking(() => {
+    toast('Suche nach Updates...');
+  });
+  window.api.onUpdateUpToDate(() => {
+    toast('Auf dem neuesten Stand!');
+  });
   window.api.onUpdateAvailable((info) => {
     document.getElementById('update-version').textContent = 'Version ' + info.version + ' ist verfuegbar';
     document.getElementById('update-banner').classList.remove('hidden');

@@ -475,12 +475,18 @@ app.whenReady().then(() => {
   autoUpdater.verifyUpdateCodeSignature = false;
   autoUpdater.setFeedURL({ provider: 'github', owner: 'deanischarf-max', repo: 'chibi-launcher' });
 
-  autoUpdater.on('checking-for-update', () => console.log('[Update] Checking...'));
+  autoUpdater.on('checking-for-update', () => {
+    console.log('[Update] Checking...');
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-checking');
+  });
   autoUpdater.on('update-available', (info) => {
     console.log('[Update] Available:', info.version);
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-available', { version: info.version });
   });
-  autoUpdater.on('update-not-available', () => console.log('[Update] Up to date'));
+  autoUpdater.on('update-not-available', () => {
+    console.log('[Update] Up to date');
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-uptodate');
+  });
   autoUpdater.on('download-progress', (p) => {
     console.log('[Update] Progress:', Math.round(p.percent) + '%');
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-progress', Math.round(p.percent));

@@ -33,7 +33,9 @@ contextBridge.exposeInMainWorld('api', {
   onLaunchError: (cb) => ipcRenderer.on('launch-error', (_, d) => cb(d)),
   onLaunchProgress: (cb) => ipcRenderer.on('launch-progress', (_, d) => cb(d)),
   // Update
+  onUpdateChecking: (cb) => ipcRenderer.on('update-checking', () => cb()),
   onUpdateAvailable: (cb) => ipcRenderer.on('update-available', (_, d) => cb(d)),
+  onUpdateUpToDate: (cb) => ipcRenderer.on('update-uptodate', () => cb()),
   onUpdateProgress: (cb) => ipcRenderer.on('update-progress', (_, d) => cb(d)),
   onUpdateError: (cb) => ipcRenderer.on('update-error', (_, d) => cb(d)),
   startUpdate: () => ipcRenderer.invoke('start-update'),
