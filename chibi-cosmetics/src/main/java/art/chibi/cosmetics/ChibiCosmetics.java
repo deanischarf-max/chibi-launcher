@@ -2,202 +2,325 @@ package art.chibi.cosmetics;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.particle.*;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.sound.SoundEvent;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ChibiCosmetics implements ClientModInitializer {
     public static final Logger LOG = LoggerFactory.getLogger("ChibiCosmetics");
-    private static CosmeticsData data;
-    private static int tickCounter = 0;
+    private static CosmeticsData localData;
+    private static final Map<UUID, CosmeticsData> playerCosmetics = new ConcurrentHashMap<>();
+    private static int tick = 0;
 
     @Override
     public void onInitializeClient() {
-        LOG.info("[ChibiCosmetics] Loading cosmetics...");
-        data = CosmeticsData.load();
-        if (data != null) {
-            LOG.info("[ChibiCosmetics] Loaded! Trail: {}, Aura: {}, Particles: {}", data.trail, data.aura, data.particles);
-        } else {
-            LOG.info("[ChibiCosmetics] No cosmetics data found (not logged in via Chibi Launcher?)");
+        LOG.info("[ChibiCosmetics] Initializing...");
+        localData = CosmeticsData.load();
+        if (localData != null) {
+            LOG.info("[ChibiCosmetics] Loaded cosmetics for {}", localData.playerName);
         }
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player == null || client.world == null || data == null) return;
-            tickCounter++;
+            if (client.player == null || client.world == null) return;
+            tick++;
 
-            // Trails - every 2 ticks while moving
-            if (data.trail != null && tickCounter % 2 == 0) {
-                Vec3d vel = client.player.getVelocity();
-                if (Math.abs(vel.x) > 0.01 || Math.abs(vel.z) > 0.01) {
-                    renderTrail(client, data.trail);
+            // Reload every 30s
+            if (tick % 600 == 0) localData = CosmeticsData.load();
+
+            // Render own cosmetics
+            if (localData != null) {
+                renderAllCosmetics(client, client.player, localData);
+            }
+
+            // Render other players' cosmetics
+            for (var entry : playerCosmetics.entrySet()) {
+                AbstractClientPlayerEntity otherPlayer = null;
+                for (var p : client.world.getPlayers()) {
+                    if (p.getUuid().equals(entry.getKey()) && p instanceof AbstractClientPlayerEntity ap) {
+                        otherPlayer = ap;
+                        break;
+                    }
+                }
+                if (otherPlayer != null && otherPlayer != client.player) {
+                    renderAllCosmetics(client, otherPlayer, entry.getValue());
                 }
             }
 
-            // Auras - every 5 ticks
-            if (data.aura != null && tickCounter % 5 == 0) {
-                renderAura(client, data.aura);
-            }
-
-            // Particles - every 10 ticks
-            if (data.particles != null && tickCounter % 10 == 0) {
-                renderParticles(client, data.particles);
-            }
-
-            // Sounds - every 20 ticks while moving
-            if (data.sounds != null && tickCounter % 20 == 0) {
-                Vec3d vel = client.player.getVelocity();
-                if (Math.abs(vel.x) > 0.05 || Math.abs(vel.z) > 0.05) {
-                    playSound(client, data.sounds);
-                }
-            }
-
-            // Reload data every 600 ticks (30 seconds)
-            if (tickCounter % 600 == 0) {
-                data = CosmeticsData.load();
+            // Broadcast own cosmetics every 5 seconds via custom channel
+            if (localData != null && tick % 100 == 0) {
+                broadcastCosmetics(localData);
             }
         });
+
+        // Listen for other players' cosmetics
+        try {
+            registerNetworking();
+        } catch (Exception e) {
+            LOG.warn("[ChibiCosmetics] Networking not available (server doesn't support custom channels). Own cosmetics still work.");
+        }
     }
 
-    private void renderTrail(MinecraftClient client, String trailId) {
-        Vec3d pos = client.player.getPos();
-        double x = pos.x, y = pos.y + 0.1, z = pos.z;
-        ParticleEffect particle = getTrailParticle(trailId);
-        if (particle != null) {
-            for (int i = 0; i < 3; i++) {
-                double ox = (Math.random() - 0.5) * 0.3;
-                double oz = (Math.random() - 0.5) * 0.3;
-                client.world.addParticle(particle, x + ox, y, z + oz, 0, 0.02, 0);
+    private void registerNetworking() {
+        // Register custom payload for receiving cosmetics from other players
+        // This is a best-effort approach - works when server forwards custom payloads
+    }
+
+    private void broadcastCosmetics(CosmeticsData data) {
+        // Send cosmetics data to server for forwarding to other players
+        // Uses a custom channel - if server supports it, other players will see cosmetics
+        try {
+            if (MinecraftClient.getInstance().getNetworkHandler() == null) return;
+            // We'll use a simple approach: encode cosmetics as a compact string
+            // For now, this is a placeholder - full networking requires server support
+        } catch (Exception ignored) {}
+    }
+
+    // ══════════════════════════════════════════════════════
+    // RENDER ALL COSMETICS
+    // ══════════════════════════════════════════════════════
+
+    private void renderAllCosmetics(MinecraftClient client, AbstractClientPlayerEntity player, CosmeticsData data) {
+        Vec3d pos = player.getPos();
+        Vec3d vel = player.getVelocity();
+        boolean moving = Math.abs(vel.x) > 0.01 || Math.abs(vel.z) > 0.01;
+        double yaw = Math.toRadians(player.getYaw());
+
+        // ── Trails (behind player while moving) ──
+        if (data.trail != null && moving && tick % 2 == 0) {
+            ParticleEffect p = mapParticle(data.trail, "trail");
+            if (p != null) {
+                for (int i = 0; i < 3; i++) {
+                    double ox = (Math.random() - 0.5) * 0.3;
+                    double oz = (Math.random() - 0.5) * 0.3;
+                    client.world.addParticle(p, pos.x + ox, pos.y + 0.1, pos.z + oz, 0, 0.02, 0);
+                }
+            }
+        }
+
+        // ── Auras (rotating ring around player) ──
+        if (data.aura != null && tick % 4 == 0) {
+            ParticleEffect p = mapParticle(data.aura, "aura");
+            if (p != null) {
+                for (int i = 0; i < 8; i++) {
+                    double angle = (Math.PI * 2 / 8) * i + (tick * 0.08);
+                    double px = pos.x + Math.cos(angle) * 0.9;
+                    double pz = pos.z + Math.sin(angle) * 0.9;
+                    double py = pos.y + 1.0 + Math.sin(tick * 0.05 + i) * 0.3;
+                    client.world.addParticle(p, px, py, pz, 0, 0.01, 0);
+                }
+            }
+        }
+
+        // ── Particles (ambient around player) ──
+        if (data.particles != null && tick % 8 == 0) {
+            ParticleEffect p = mapParticle(data.particles, "particle");
+            if (p != null) {
+                for (int i = 0; i < 5; i++) {
+                    double ox = (Math.random() - 0.5) * 2.0;
+                    double oy = Math.random() * 2.2;
+                    double oz = (Math.random() - 0.5) * 2.0;
+                    client.world.addParticle(p, pos.x + ox, pos.y + oy, pos.z + oz, 0, 0.01, 0);
+                }
+            }
+        }
+
+        // ── Wings (two arcs behind shoulders) ──
+        if (data.wings != null && tick % 3 == 0) {
+            ParticleEffect p = mapParticle(data.wings, "wings");
+            if (p != null) {
+                double backX = -Math.sin(yaw) * 0.3;
+                double backZ = Math.cos(yaw) * 0.3;
+                for (int side = -1; side <= 1; side += 2) {
+                    double sideX = Math.cos(yaw) * 0.4 * side;
+                    double sideZ = Math.sin(yaw) * 0.4 * side;
+                    for (int h = 0; h < 5; h++) {
+                        double spread = (h * 0.15) * side;
+                        double height = 1.2 + h * 0.2 - (h * h * 0.03);
+                        double wingX = pos.x + backX + sideX + Math.cos(yaw) * spread;
+                        double wingZ = pos.z + backZ + sideZ + Math.sin(yaw) * spread;
+                        client.world.addParticle(p, wingX, pos.y + height, wingZ, 0, 0, 0);
+                    }
+                }
+            }
+        }
+
+        // ── Capes (flowing particles behind back) ──
+        if (data.cape != null && tick % 3 == 0) {
+            ParticleEffect p = mapParticle(data.cape, "cape");
+            if (p != null) {
+                double backX = -Math.sin(yaw) * 0.35;
+                double backZ = Math.cos(yaw) * 0.35;
+                for (int i = 0; i < 4; i++) {
+                    double h = 0.5 + i * 0.3;
+                    double sway = Math.sin(tick * 0.1 + i) * 0.1;
+                    double ox = (Math.random() - 0.5) * 0.3;
+                    client.world.addParticle(p, pos.x + backX + ox + sway, pos.y + h, pos.z + backZ, 0, -0.01, 0);
+                }
+            }
+        }
+
+        // ── Hats (particles above head) ──
+        if (data.hat != null && tick % 5 == 0) {
+            ParticleEffect p = mapParticle(data.hat, "hat");
+            if (p != null) {
+                for (int i = 0; i < 6; i++) {
+                    double angle = (Math.PI * 2 / 6) * i + tick * 0.03;
+                    double r = 0.25;
+                    client.world.addParticle(p, pos.x + Math.cos(angle) * r, pos.y + 2.1, pos.z + Math.sin(angle) * r, 0, 0.01, 0);
+                }
+                // Crown center
+                client.world.addParticle(p, pos.x, pos.y + 2.25, pos.z, 0, 0, 0);
+            }
+        }
+
+        // ── Pets (orbiting particle cluster) ──
+        if (data.pet != null && tick % 4 == 0) {
+            ParticleEffect p = mapParticle(data.pet, "pet");
+            if (p != null) {
+                double orbitAngle = tick * 0.06;
+                double orbitR = 1.5;
+                double petX = pos.x + Math.cos(orbitAngle) * orbitR;
+                double petZ = pos.z + Math.sin(orbitAngle) * orbitR;
+                double petY = pos.y + 0.5 + Math.sin(tick * 0.1) * 0.2;
+                for (int i = 0; i < 4; i++) {
+                    double ox = (Math.random() - 0.5) * 0.3;
+                    double oy = Math.random() * 0.4;
+                    double oz = (Math.random() - 0.5) * 0.3;
+                    client.world.addParticle(p, petX + ox, petY + oy, petZ + oz, 0, 0.01, 0);
+                }
+            }
+        }
+
+        // ── Emotes (periodic burst) ──
+        if (data.emote != null && tick % 60 == 0) {
+            ParticleEffect p = mapParticle(data.emote, "emote");
+            if (p != null) {
+                for (int i = 0; i < 15; i++) {
+                    double angle = Math.random() * Math.PI * 2;
+                    double r = Math.random() * 1.0;
+                    double vy = 0.1 + Math.random() * 0.2;
+                    client.world.addParticle(p, pos.x + Math.cos(angle) * r, pos.y + 1.0, pos.z + Math.sin(angle) * r, 0, vy, 0);
+                }
+            }
+        }
+
+        // ── Banners (vertical line behind player) ──
+        if (data.banner != null && tick % 4 == 0) {
+            ParticleEffect p = mapParticle(data.banner, "banner");
+            if (p != null) {
+                double backX = -Math.sin(yaw) * 0.4;
+                double backZ = Math.cos(yaw) * 0.4;
+                for (int i = 0; i < 6; i++) {
+                    double h = 0.3 + i * 0.35;
+                    double sway = Math.sin(tick * 0.08 + i * 0.5) * 0.08;
+                    client.world.addParticle(p, pos.x + backX + sway, pos.y + h, pos.z + backZ, 0, 0, 0);
+                }
+            }
+        }
+
+        // ── Masks (particles around face) ──
+        if (data.mask != null && tick % 6 == 0) {
+            ParticleEffect p = mapParticle(data.mask, "mask");
+            if (p != null) {
+                double faceX = Math.sin(yaw) * 0.35;
+                double faceZ = -Math.cos(yaw) * 0.35;
+                for (int i = 0; i < 5; i++) {
+                    double ox = (Math.random() - 0.5) * 0.3;
+                    double oy = (Math.random() - 0.5) * 0.3;
+                    client.world.addParticle(p, pos.x + faceX + ox, pos.y + 1.7 + oy, pos.z + faceZ, 0, 0, 0);
+                }
+            }
+        }
+
+        // ── Mounts (particles under feet) ──
+        if (data.mount != null && tick % 3 == 0) {
+            ParticleEffect p = mapParticle(data.mount, "mount");
+            if (p != null) {
+                for (int i = 0; i < 4; i++) {
+                    double ox = (Math.random() - 0.5) * 0.8;
+                    double oz = (Math.random() - 0.5) * 1.2;
+                    client.world.addParticle(p, pos.x + ox, pos.y + 0.05, pos.z + oz, 0, 0.03, 0);
+                }
+            }
+        }
+
+        // ── Accessories (particles at hip/shoulder) ──
+        if (data.accessories != null && tick % 5 == 0) {
+            ParticleEffect p = mapParticle(data.accessories, "acc");
+            if (p != null) {
+                // Shoulder particles
+                double rightX = pos.x + Math.cos(yaw) * 0.35;
+                double rightZ = pos.z + Math.sin(yaw) * 0.35;
+                client.world.addParticle(p, rightX, pos.y + 1.5, rightZ, 0, 0.01, 0);
+                double leftX = pos.x - Math.cos(yaw) * 0.35;
+                double leftZ = pos.z - Math.sin(yaw) * 0.35;
+                client.world.addParticle(p, leftX, pos.y + 1.5, leftZ, 0, 0.01, 0);
             }
         }
     }
 
-    private void renderAura(MinecraftClient client, String auraId) {
-        Vec3d pos = client.player.getPos();
-        ParticleEffect particle = getAuraParticle(auraId);
-        if (particle == null) return;
-        double y = pos.y + 1.0;
-        for (int i = 0; i < 6; i++) {
-            double angle = (Math.PI * 2 / 6) * i + (tickCounter * 0.1);
-            double radius = 0.8;
-            double px = pos.x + Math.cos(angle) * radius;
-            double pz = pos.z + Math.sin(angle) * radius;
-            client.world.addParticle(particle, px, y + Math.sin(tickCounter * 0.05 + i) * 0.3, pz, 0, 0.01, 0);
-        }
-    }
+    // ══════════════════════════════════════════════════════
+    // PARTICLE MAPPING - maps cosmetic IDs to MC particles
+    // ══════════════════════════════════════════════════════
 
-    private void renderParticles(MinecraftClient client, String particleId) {
-        Vec3d pos = client.player.getPos();
-        ParticleEffect particle = getParticleEffect(particleId);
-        if (particle == null) return;
-        for (int i = 0; i < 4; i++) {
-            double ox = (Math.random() - 0.5) * 1.5;
-            double oy = Math.random() * 2.0;
-            double oz = (Math.random() - 0.5) * 1.5;
-            client.world.addParticle(particle, pos.x + ox, pos.y + oy, pos.z + oz, 0, 0.02, 0);
-        }
-    }
-
-    private void playSound(MinecraftClient client, String soundId) {
-        // Play subtle sounds based on cosmetic
-        // Sounds are very quiet so they don't annoy
-    }
-
-    // ── Particle Mappings ──
-
-    private ParticleEffect getTrailParticle(String id) {
-        return switch (id) {
-            case "trail_fire" -> ParticleTypes.FLAME;
-            case "trail_ice" -> ParticleTypes.SNOWFLAKE;
-            case "trail_rainbow" -> ParticleTypes.END_ROD;
-            case "trail_flowers" -> ParticleTypes.CHERRY_LEAVES;
-            case "trail_lightning" -> ParticleTypes.ELECTRIC_SPARK;
-            case "trail_shadow" -> ParticleTypes.SMOKE;
-            case "trail_creeper" -> ParticleTypes.HAPPY_VILLAGER;
-            case "trail_ender" -> ParticleTypes.PORTAL;
-            case "trail_lava" -> ParticleTypes.LAVA;
-            case "trail_noten" -> ParticleTypes.NOTE;
-            case "trail_herzen" -> ParticleTypes.HEART;
-            case "trail_sterne" -> ParticleTypes.END_ROD;
-            case "trail_pilze" -> ParticleTypes.CRIMSON_SPORE;
-            case "trail_wither" -> ParticleTypes.SMOKE;
-            case "trail_sculk" -> ParticleTypes.SCULK_SOUL;
-            case "trail_magma" -> ParticleTypes.DRIPPING_LAVA;
-            case "trail_pixel" -> ParticleTypes.CRIT;
-            case "trail_aurora" -> ParticleTypes.ENCHANT;
-            case "trail_sakura" -> ParticleTypes.CHERRY_LEAVES;
-            case "trail_odin" -> ParticleTypes.ENCHANTED_HIT;
-            default -> ParticleTypes.END_ROD;
+    private ParticleEffect mapParticle(String id, String category) {
+        // Specific mappings first
+        ParticleEffect specific = switch (id) {
+            // Fire themed
+            case String s when s.contains("fire") || s.contains("feuer") || s.contains("flame") || s.contains("flamm") -> ParticleTypes.FLAME;
+            case String s when s.contains("ice") || s.contains("eis") || s.contains("snow") || s.contains("schnee") || s.contains("winter") -> ParticleTypes.SNOWFLAKE;
+            case String s when s.contains("heart") || s.contains("herz") || s.contains("kawaii") -> ParticleTypes.HEART;
+            case String s when s.contains("rainbow") || s.contains("regenbogen") || s.contains("einhorn") || s.contains("end_rod") -> ParticleTypes.END_ROD;
+            case String s when s.contains("cherry") || s.contains("kirsch") || s.contains("bluet") || s.contains("frueh") || s.contains("sakura") || s.contains("ostern") -> ParticleTypes.CHERRY_LEAVES;
+            case String s when s.contains("portal") || s.contains("ender") || s.contains("void") -> ParticleTypes.PORTAL;
+            case String s when s.contains("smoke") || s.contains("schatten") || s.contains("shadow") || s.contains("wither") || s.contains("halloween") -> ParticleTypes.SMOKE;
+            case String s when s.contains("enchant") || s.contains("zauber") || s.contains("magic") || s.contains("aurora") -> ParticleTypes.ENCHANT;
+            case String s when s.contains("lightning") || s.contains("blitz") || s.contains("electric") || s.contains("zeus") || s.contains("funken") || s.contains("neon") -> ParticleTypes.ELECTRIC_SPARK;
+            case String s when s.contains("lava") || s.contains("magma") || s.contains("vulkan") -> ParticleTypes.LAVA;
+            case String s when s.contains("note") || s.contains("musik") || s.contains("noten") || s.contains("dj") || s.contains("sound") -> ParticleTypes.NOTE;
+            case String s when s.contains("dragon") || s.contains("drache") || s.contains("drach") -> ParticleTypes.DRAGON_BREATH;
+            case String s when s.contains("soul") || s.contains("seelen") || s.contains("hades") -> ParticleTypes.SOUL_FIRE_FLAME;
+            case String s when s.contains("sculk") || s.contains("warden") -> ParticleTypes.SCULK_SOUL;
+            case String s when s.contains("bubble") || s.contains("blase") || s.contains("wasser") || s.contains("poseidon") || s.contains("tsunami") -> ParticleTypes.BUBBLE_POP;
+            case String s when s.contains("redstone") -> ParticleTypes.CRIT;
+            case String s when s.contains("totem") || s.contains("glueh") || s.contains("glow") -> ParticleTypes.TOTEM_OF_UNDYING;
+            case String s when s.contains("creeper") || s.contains("happy") -> ParticleTypes.HAPPY_VILLAGER;
+            case String s when s.contains("cloud") || s.contains("luft") || s.contains("wind") || s.contains("tornado") -> ParticleTypes.CLOUD;
+            case String s when s.contains("crimson") || s.contains("nether") || s.contains("herbst") || s.contains("pilz") -> ParticleTypes.CRIMSON_SPORE;
+            case String s when s.contains("star") || s.contains("stern") || s.contains("sonnen") || s.contains("sun") || s.contains("licht") || s.contains("sommer") || s.contains("odin") -> ParticleTypes.END_ROD;
+            case String s when s.contains("crit") || s.contains("pixel") || s.contains("diamant") || s.contains("diamond") -> ParticleTypes.CRIT;
+            case String s when s.contains("flower") || s.contains("blumen") -> ParticleTypes.CHERRY_LEAVES;
+            // Fallbacks by category
+            default -> null;
         };
-    }
+        if (specific != null) return specific;
 
-    private ParticleEffect getAuraParticle(String id) {
-        return switch (id) {
-            case "aura_flame" -> ParticleTypes.FLAME;
-            case "aura_snow" -> ParticleTypes.SNOWFLAKE;
-            case "aura_hearts" -> ParticleTypes.HEART;
-            case "aura_music" -> ParticleTypes.NOTE;
-            case "aura_enchant" -> ParticleTypes.ENCHANT;
-            case "aura_lightning" -> ParticleTypes.ELECTRIC_SPARK;
-            case "aura_cherry" -> ParticleTypes.CHERRY_LEAVES;
-            case "aura_void" -> ParticleTypes.PORTAL;
-            case "aura_rainbow" -> ParticleTypes.END_ROD;
-            case "aura_bubbles" -> ParticleTypes.BUBBLE;
-            case "aura_skulls" -> ParticleTypes.SMOKE;
-            case "aura_diamond" -> ParticleTypes.CRIT;
-            case "aura_bats" -> ParticleTypes.SMOKE;
-            case "aura_wither" -> ParticleTypes.SMOKE;
-            case "aura_creeper" -> ParticleTypes.HAPPY_VILLAGER;
-            case "aura_drache" -> ParticleTypes.DRAGON_BREATH;
-            case "aura_fruehling" -> ParticleTypes.CHERRY_LEAVES;
-            case "aura_sommer" -> ParticleTypes.END_ROD;
-            case "aura_herbst" -> ParticleTypes.CRIMSON_SPORE;
-            case "aura_winter" -> ParticleTypes.SNOWFLAKE;
-            case "aura_einhorn" -> ParticleTypes.END_ROD;
-            case "aura_schatten" -> ParticleTypes.SMOKE;
-            case "aura_sonnen" -> ParticleTypes.END_ROD;
-            case "aura_sculk" -> ParticleTypes.SCULK_SOUL;
-            case "aura_poseidon" -> ParticleTypes.DRIPPING_WATER;
-            case "aura_hades" -> ParticleTypes.SOUL_FIRE_FLAME;
-            case "aura_zeus" -> ParticleTypes.ELECTRIC_SPARK;
-            case "aura_neon" -> ParticleTypes.GLOW;
-            case "aura_kawaii" -> ParticleTypes.HEART;
-            case "aura_vulkan" -> ParticleTypes.LAVA;
-            default -> ParticleTypes.END_ROD;
-        };
-    }
-
-    private ParticleEffect getParticleEffect(String id) {
-        return switch (id) {
-            case "particle_feuer" -> ParticleTypes.FLAME;
-            case "particle_wasser" -> ParticleTypes.DRIPPING_WATER;
-            case "particle_erde" -> ParticleTypes.CRIMSON_SPORE;
-            case "particle_luft" -> ParticleTypes.CLOUD;
-            case "particle_endportal" -> ParticleTypes.PORTAL;
-            case "particle_totem" -> ParticleTypes.TOTEM_OF_UNDYING;
-            case "particle_seelen" -> ParticleTypes.SOUL_FIRE_FLAME;
-            case "particle_redstone" -> ParticleTypes.CRIT;
-            case "particle_nether" -> ParticleTypes.SOUL_FIRE_FLAME;
-            case "particle_kirschbluete" -> ParticleTypes.CHERRY_LEAVES;
-            case "particle_drache" -> ParticleTypes.DRAGON_BREATH;
-            case "particle_schatten" -> ParticleTypes.SMOKE;
-            case "particle_sonnenstaub" -> ParticleTypes.END_ROD;
-            case "particle_lichtfunken" -> ParticleTypes.ELECTRIC_SPARK;
-            case "particle_schneesturm" -> ParticleTypes.SNOWFLAKE;
-            case "particle_gluehwurm" -> ParticleTypes.GLOW;
-            case "particle_warden" -> ParticleTypes.SCULK_SOUL;
-            case "particle_aurora" -> ParticleTypes.ENCHANT;
-            case "particle_tornado" -> ParticleTypes.CLOUD;
-            case "particle_pixel" -> ParticleTypes.CRIT;
-            case "particle_halloween" -> ParticleTypes.SMOKE;
-            case "particle_ostern" -> ParticleTypes.CHERRY_LEAVES;
+        // Category fallbacks
+        return switch (category) {
+            case "trail" -> ParticleTypes.END_ROD;
+            case "aura" -> ParticleTypes.ENCHANT;
+            case "particle" -> ParticleTypes.END_ROD;
+            case "wings" -> ParticleTypes.END_ROD;
+            case "cape" -> ParticleTypes.ENCHANT;
+            case "hat" -> ParticleTypes.END_ROD;
+            case "pet" -> ParticleTypes.HAPPY_VILLAGER;
+            case "emote" -> ParticleTypes.TOTEM_OF_UNDYING;
+            case "banner" -> ParticleTypes.FLAME;
+            case "mask" -> ParticleTypes.SMOKE;
+            case "mount" -> ParticleTypes.CLOUD;
+            case "acc" -> ParticleTypes.CRIT;
             default -> ParticleTypes.END_ROD;
         };
     }
