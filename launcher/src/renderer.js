@@ -83,38 +83,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       const r = await window.api.checkUpdate();
       document.getElementById('app-version').textContent = 'v' + r.current;
       if (r.error) {
-        statusEl.innerHTML = '<span style="color:#ff6b6b;font-size:12px">Update-Check: ' + r.error + '</span>';
+        statusEl.innerHTML = '<span style="color:#ff6b6b;font-size:12px">' + r.error + '</span>';
         return;
       }
       if (r.update && r.url) {
-        statusEl.innerHTML = '<div style="background:rgba(27,217,106,.15);border:1px solid rgba(27,217,106,.3);border-radius:8px;padding:10px;text-align:center">' +
-          '<div style="color:#1bd96a;font-weight:700;font-size:14px">Update v' + r.latest + ' verfuegbar!</div>' +
-          '<div class="dim" style="margin:4px 0">Du hast v' + r.current + '</div>' +
-          '<button class="btn btn-primary btn-sm" id="btn-do-update" style="margin-top:6px">Jetzt updaten</button>' +
-          '<div id="dl-bar" style="display:none;margin-top:8px"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden"><div id="dl-fill" style="height:100%;background:#1bd96a;width:0%;transition:width .3s"></div></div><div class="dim" style="text-align:center;margin-top:2px" id="dl-pct">0%</div></div>' +
+        // AUTO-UPDATE: Sofort downloaden ohne User-Interaktion
+        statusEl.innerHTML = '<div style="background:rgba(27,217,106,.15);border:1px solid rgba(27,217,106,.3);border-radius:8px;padding:12px;text-align:center">' +
+          '<div style="color:#1bd96a;font-weight:700;font-size:14px">Update v' + r.latest + ' wird installiert...</div>' +
+          '<div class="dim" style="margin:4px 0">Bitte warten</div>' +
+          '<div style="margin-top:8px"><div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden"><div id="dl-fill" style="height:100%;background:#1bd96a;width:0%;transition:width .3s"></div></div><div class="dim" style="text-align:center;margin-top:4px" id="dl-pct">Download startet...</div></div>' +
           '</div>';
-        document.getElementById('btn-do-update').onclick = async () => {
-          document.getElementById('btn-do-update').textContent = 'Wird heruntergeladen...';
-          document.getElementById('btn-do-update').disabled = true;
-          document.getElementById('dl-bar').style.display = 'block';
-          window.api.onUpdateDlProgress((pct) => {
+        window.api.onUpdateDlProgress((pct) => {
+          try {
             document.getElementById('dl-fill').style.width = pct + '%';
-            document.getElementById('dl-pct').textContent = pct + '%';
-          });
-          const result = await window.api.downloadUpdate(r.url);
-          if (!result.success) {
-            document.getElementById('btn-do-update').textContent = 'Fehler - Im Browser oeffnen';
-            document.getElementById('btn-do-update').disabled = false;
-            document.getElementById('btn-do-update').onclick = () => window.api.openExternal(r.page || r.url);
-          }
-        };
-      } else if (r.update && !r.url) {
-        statusEl.innerHTML = '<a href="#" onclick="window.api.openExternal(\'' + r.page + '\')" style="color:#1bd96a;font-size:12px">Update v' + r.latest + ' verfuegbar - hier klicken</a>';
+            document.getElementById('dl-pct').textContent = pct + '% heruntergeladen';
+          } catch(e) {}
+        });
+        const result = await window.api.downloadUpdate(r.url);
+        if (!result.success) {
+          statusEl.innerHTML = '<div style="text-align:center"><div style="color:#ff6b6b;font-size:13px;margin-bottom:8px">Update fehlgeschlagen</div>' +
+            '<button class="btn btn-primary btn-sm" onclick="window.api.openExternal(\'' + (r.page || r.url) + '\')">Manuell herunterladen</button></div>';
+        }
       } else {
-        statusEl.innerHTML = '<span style="color:#1bd96a;font-size:12px">&#10003; Aktuell (v' + r.current + ')</span>';
+        statusEl.innerHTML = '<span style="color:#1bd96a;font-size:12px">&#10003; Aktuell</span>';
       }
     } catch(e) {
-      statusEl.innerHTML = '<span style="color:#ff6b6b;font-size:12px">Fehler: ' + e.message + '</span>';
+      statusEl.innerHTML = '<span style="color:#ff6b6b;font-size:12px">' + e.message + '</span>';
     }
   }
   checkUpdate();
