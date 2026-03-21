@@ -1,0 +1,93 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            build-cmd: npm run build-win
+          - os: ubuntu-latest
+            build-cmd: npm run build-linux
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: launcher
+        run: npm ci
+
+      - name: Build
+        working-directory: launcher
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ${{ matrix.build-cmd }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+          path: |
+            launcher/dist/*.exe
+            launcher/dist/*.AppImage
+            launcher/dist/*.yml
+            launcher/dist/*.yaml
+          if-no-files-found: warn
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./launcher/package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find dist -type f | head -20
+
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Chibi Launcher v${{ steps.version.outputs.version }}
+          body: |
+            ## Chibi Launcher v${{ steps.version.outputs.version }}
+
+            ### Download
+            - **Windows**: `.exe` Installer (einfach ausfuehren)
+            - **Linux**: `.AppImage` (chmod +x und ausfuehren)
+
+            ### Auto-Update
+            Bestehende Installationen updaten sich automatisch beim naechsten Start!
+          files: |
+            dist/**/*.exe
+            dist/**/*.AppImage
+            dist/**/*.yml
+            dist/**/*.yaml
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
