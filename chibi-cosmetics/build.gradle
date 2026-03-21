@@ -8,11 +8,10 @@ repositories {
     maven { url 'https://maven.fabricmc.net/' }
 }
 dependencies {
-    minecraft "com.mojang:minecraft:1.21.11"
-    mappings "net.fabricmc:yarn:1.21.11+build.4:v2"
+    minecraft "com.mojang:minecraft:1.21.4"
+    mappings "net.fabricmc:yarn:1.21.4+build.8:v2"
     modImplementation "net.fabricmc:fabric-loader:0.16.14"
-    modImplementation fabricApi.module("fabric-lifecycle-events-v1", "0.141.3+1.21.11")
-    modImplementation fabricApi.module("fabric-rendering-v1", "0.141.3+1.21.11")
+    modImplementation "net.fabricmc.fabric-api:fabric-api:0.119.5+1.21.4"
 }
 tasks.withType(JavaCompile).configureEach {
     options.release = 21

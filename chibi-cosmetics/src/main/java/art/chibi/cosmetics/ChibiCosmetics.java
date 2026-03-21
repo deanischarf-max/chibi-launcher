@@ -2,15 +2,9 @@ package art.chibi.cosmetics;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.particle.*;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -292,8 +286,8 @@ public class ChibiCosmetics implements ClientModInitializer {
             case String s when s.contains("note") || s.contains("musik") || s.contains("noten") || s.contains("dj") || s.contains("sound") -> ParticleTypes.NOTE;
             case String s when s.contains("dragon") || s.contains("drache") || s.contains("drach") -> ParticleTypes.DRAGON_BREATH;
             case String s when s.contains("soul") || s.contains("seelen") || s.contains("hades") -> ParticleTypes.SOUL_FIRE_FLAME;
-            case String s when s.contains("sculk") || s.contains("warden") -> ParticleTypes.SCULK_SOUL;
-            case String s when s.contains("bubble") || s.contains("blase") || s.contains("wasser") || s.contains("poseidon") || s.contains("tsunami") -> ParticleTypes.BUBBLE_POP;
+            case String s when s.contains("sculk") || s.contains("warden") -> ParticleTypes.SOUL_FIRE_FLAME;
+            case String s when s.contains("bubble") || s.contains("blase") || s.contains("wasser") || s.contains("poseidon") || s.contains("tsunami") -> ParticleTypes.SPLASH;
             case String s when s.contains("redstone") -> ParticleTypes.CRIT;
             case String s when s.contains("totem") || s.contains("glueh") || s.contains("glow") -> ParticleTypes.TOTEM_OF_UNDYING;
             case String s when s.contains("creeper") || s.contains("happy") -> ParticleTypes.HAPPY_VILLAGER;

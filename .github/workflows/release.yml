@@ -8,6 +8,25 @@ permissions:
   contents: write
 
 jobs:
+  build-mod:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Build Cosmetics Mod
+        working-directory: chibi-cosmetics
+        run: chmod +x gradlew && ./gradlew build
+      - name: Upload mod JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cosmetics-mod
+          path: chibi-cosmetics/build/libs/ChibiCosmetics-*.jar
+
   build:
     strategy:
       matrix:
@@ -42,7 +61,8 @@ jobs:
           if-no-files-found: warn
 
   release:
-    needs: build
+    needs: [build, build-mod]
+    if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,8 +74,9 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+        continue-on-error: true
       - name: List artifacts
-        run: find dist -type f | head -30
+        run: find dist -type f 2>/dev/null | head -30
       - name: Create or update release
         uses: softprops/action-gh-release@v2
         with:
@@ -75,6 +96,7 @@ jobs:
             dist/**/*.AppImage
             dist/**/*.yml
             dist/**/*.yaml
+            dist/**/*.jar
           draft: false
           prerelease: false
           generate_release_notes: true
