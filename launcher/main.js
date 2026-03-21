@@ -107,6 +107,115 @@ const COSMETICS_CATALOG = [
   { id: 'trail_flowers', name: 'Blumenspur', category: 'trails', price: 1000, description: 'Blumen spriessen wo du gehst' },
   { id: 'trail_lightning', name: 'Blitzspur', category: 'trails', price: 2500, description: 'Elektrische Funken hinter dir' },
   { id: 'trail_shadow', name: 'Schattenspur', category: 'trails', price: 3000, description: 'Dunkle Schatten verfolgen dich' },
+  // ── Neue Capes ──
+  { id: 'cape_creeper', name: 'Creeper Cape', category: 'capes', price: 1800, description: 'Gruenes Cape mit Creeper-Gesicht' },
+  { id: 'cape_wither', name: 'Wither Cape', category: 'capes', price: 5000, description: 'Duesteren Cape des Withers' },
+  { id: 'cape_drachen', name: 'Drachen Cape', category: 'capes', price: 6000, description: 'Schuppiges Cape eines uralten Drachen' },
+  { id: 'cape_fruehling', name: 'Fruehlings Cape', category: 'capes', price: 1200, description: 'Bluehendes Cape voller Fruehlingsblueten' },
+  { id: 'cape_sommer', name: 'Sommer Cape', category: 'capes', price: 1200, description: 'Sonnengelbes Cape fuer heisse Tage' },
+  { id: 'cape_herbst', name: 'Herbst Cape', category: 'capes', price: 1200, description: 'Buntes Laubcape in Herbstfarben' },
+  { id: 'cape_winter', name: 'Winter Cape', category: 'capes', price: 1200, description: 'Verschneites Cape mit Eiskristallen' },
+  { id: 'cape_einhorn', name: 'Einhorn Cape', category: 'capes', price: 4500, description: 'Magisches schimmerndes Einhorn Cape' },
+  { id: 'cape_enderman', name: 'Enderman Cape', category: 'capes', price: 3500, description: 'Teleportierendes violettes Enderman Cape' },
+  { id: 'cape_erde', name: 'Erd Cape', category: 'capes', price: 2000, description: 'Massives Cape aus Stein und Erde' },
+  // ── Neue Huete ──
+  { id: 'hat_creeper', name: 'Creeper Kopf', category: 'hats', price: 800, description: 'Gruener Creeper-Kopf als Hut' },
+  { id: 'hat_drache', name: 'Drachenhelm', category: 'hats', price: 5000, description: 'Gehoernter Helm eines Drachenreiters' },
+  { id: 'hat_blumenkranz', name: 'Blumenkranz', category: 'hats', price: 600, description: 'Huebscher Kranz aus Fruehlingsblumen' },
+  { id: 'hat_schneekrone', name: 'Schneekrone', category: 'hats', price: 2500, description: 'Eisige Krone aus ewigem Frost' },
+  { id: 'hat_sonnenkrone', name: 'Sonnenkrone', category: 'hats', price: 3500, description: 'Strahlende Krone der SonnensBurg' },
+  { id: 'hat_schattenkrone', name: 'Schattenkrone', category: 'hats', price: 3500, description: 'Dunkle Krone der Schattenburg' },
+  { id: 'hat_lichtkrone', name: 'Lichtkrone', category: 'hats', price: 3500, description: 'Leuchtende Krone der HelichkeitsBurg' },
+  { id: 'hat_wither', name: 'Witherkopf', category: 'hats', price: 7000, description: 'Furchteinflossender Kopf des Withers' },
+  { id: 'hat_enderdrache', name: 'Enderdrachen Kopf', category: 'hats', price: 8000, description: 'Majestaetischer Kopf des Enderdrachen' },
+  { id: 'hat_phoenix', name: 'Phoenixfeder Krone', category: 'hats', price: 6000, description: 'Brennende Federkrone des Phoenix' },
+  // ── Neue Fluegel ──
+  { id: 'wings_ender', name: 'Enderfluegel', category: 'wings', price: 5500, description: 'Violett schimmernde Fluegel aus dem Ende' },
+  { id: 'wings_wither', name: 'Witherfluegel', category: 'wings', price: 8000, description: 'Knochenfluegel des gefuerchteten Withers' },
+  { id: 'wings_eis', name: 'Eisfluegel', category: 'wings', price: 4000, description: 'Gefrorene Fluegel aus ewigem Eis' },
+  { id: 'wings_herbst', name: 'Herbstfluegel', category: 'wings', price: 3000, description: 'Fluegel aus buntem Herbstlaub' },
+  { id: 'wings_schatten', name: 'Schattenfluegel', category: 'wings', price: 6500, description: 'Dunkle Fluegel der Schattenburg' },
+  { id: 'wings_sonnen', name: 'Sonnenfluegel', category: 'wings', price: 6500, description: 'Goldene strahlende Fluegel der SonnensBurg' },
+  { id: 'wings_einhorn', name: 'Einhornfluegel', category: 'wings', price: 7500, description: 'Regenbogen Fluegel eines Einhorns' },
+  { id: 'wings_creeper', name: 'Creeperfluegel', category: 'wings', price: 3500, description: 'Explosive gruene Creeper-Fluegel' },
+  // ── Neue Auren ──
+  { id: 'aura_wither', name: 'Wither Aura', category: 'auras', price: 5000, description: 'Schwarzer Nebel des Withers umgibt dich' },
+  { id: 'aura_creeper', name: 'Creeper Aura', category: 'auras', price: 2000, description: 'Gruene Funken und Zischgerausche' },
+  { id: 'aura_drache', name: 'Drachen Aura', category: 'auras', price: 6000, description: 'Drakonische Flammenwirbel um dich herum' },
+  { id: 'aura_fruehling', name: 'Fruehlings Aura', category: 'auras', price: 1500, description: 'Blueten und Schmetterlinge tanzen umher' },
+  { id: 'aura_sommer', name: 'Sommer Aura', category: 'auras', price: 1500, description: 'Warme Sonnenstrahlen und Glitzern' },
+  { id: 'aura_herbst', name: 'Herbst Aura', category: 'auras', price: 1500, description: 'Wirbelnde bunte Blaetter um dich' },
+  { id: 'aura_winter', name: 'Winter Aura', category: 'auras', price: 1500, description: 'Eisige Kristalle und Schneeflocken' },
+  { id: 'aura_einhorn', name: 'Einhorn Aura', category: 'auras', price: 4500, description: 'Magischer Regenbogenstaub umgibt dich' },
+  { id: 'aura_schatten', name: 'Schatten Aura', category: 'auras', price: 3500, description: 'Dunkle Schatten der Schattenburg' },
+  { id: 'aura_sonnen', name: 'Sonnen Aura', category: 'auras', price: 3500, description: 'Goldenes Leuchten der SonnensBurg' },
+  // ── Neue Emotes ──
+  { id: 'emote_dance', name: 'Freudentanz', category: 'emotes', price: 500, description: 'Freudig im Kreis tanzen' },
+  { id: 'emote_cry', name: 'Weinen', category: 'emotes', price: 300, description: 'Dramatisch in Traenen ausbrechen' },
+  { id: 'emote_laugh', name: 'Lachen', category: 'emotes', price: 250, description: 'Herzhaft laut loslachen' },
+  { id: 'emote_bow', name: 'Verbeugung', category: 'emotes', price: 400, description: 'Elegante Verbeugung vor dem Gegenueber' },
+  { id: 'emote_flex', name: 'Muskeln zeigen', category: 'emotes', price: 600, description: 'Stolz die Muskeln anspannen' },
+  { id: 'emote_sleep', name: 'Schlafen', category: 'emotes', price: 350, description: 'Muede einschlafen mit Zzz-Blasen' },
+  { id: 'emote_ninja', name: 'Ninja Pose', category: 'emotes', price: 800, description: 'Coole Ninja-Kampfhaltung einnehmen' },
+  { id: 'emote_chicken', name: 'Huehnertanz', category: 'emotes', price: 700, description: 'Wie ein Huhn gackern und flattern' },
+  { id: 'emote_rage', name: 'Wutanfall', category: 'emotes', price: 500, description: 'Wuetend auf den Boden stampfen' },
+  { id: 'emote_dj', name: 'DJ Move', category: 'emotes', price: 1000, description: 'An unsichtbaren Plattentellern scratchen' },
+  { id: 'emote_schwertkampf', name: 'Schwertkampf', category: 'emotes', price: 900, description: 'Beeindruckende Schwertkunst vorfuehren' },
+  { id: 'emote_zaubern', name: 'Zaubern', category: 'emotes', price: 1200, description: 'Magische Runen in die Luft zeichnen' },
+  // ── Neue Begleiter ──
+  { id: 'pet_creeper', name: 'Baby Creeper', category: 'pets', price: 3000, description: 'Kleiner zahmer Creeper der nicht explodiert' },
+  { id: 'pet_endermite', name: 'Endermite', category: 'pets', price: 2500, description: 'Winzige violette Endermite als Freund' },
+  { id: 'pet_wolf', name: 'Wolfswelpe', category: 'pets', price: 3500, description: 'Treuer kleiner Wolf mit Halsband' },
+  { id: 'pet_phoenix', name: 'Baby Phoenix', category: 'pets', price: 12000, description: 'Flammendes Kueken das aus der Asche steigt' },
+  { id: 'pet_einhorn', name: 'Mini Einhorn', category: 'pets', price: 8000, description: 'Winziges Einhorn mit Regenbogenschweif' },
+  { id: 'pet_schneemann', name: 'Schneemaennchen', category: 'pets', price: 2000, description: 'Kleiner Schneemann der nie schmilzt' },
+  { id: 'pet_fledermaus', name: 'Fledermaeuschen', category: 'pets', price: 1500, description: 'Nachtaktive kleine Fledermaus' },
+  { id: 'pet_schildkroete', name: 'Schildkroete', category: 'pets', price: 2200, description: 'Gemuetliche kleine Schildkroete' },
+  { id: 'pet_wither_skelett', name: 'Mini Witherskelett', category: 'pets', price: 7000, description: 'Kleines dunkles Witherskelett als Bodyguard' },
+  { id: 'pet_allay', name: 'Allay', category: 'pets', price: 5000, description: 'Tanzender blauer Allay mit Musiknote' },
+  // ── Neue Spuren ──
+  { id: 'trail_creeper', name: 'Creeperspur', category: 'trails', price: 2000, description: 'Gruene Explosionspartikel hinter dir' },
+  { id: 'trail_ender', name: 'Enderspur', category: 'trails', price: 3500, description: 'Violette Enderpartikel folgen dir' },
+  { id: 'trail_lava', name: 'Lavaspur', category: 'trails', price: 2500, description: 'Gluehende Lava tropft hinter dir' },
+  { id: 'trail_noten', name: 'Notenspur', category: 'trails', price: 1500, description: 'Bunte Musiknoten tanzen hinter dir' },
+  { id: 'trail_herzen', name: 'Herzenspur', category: 'trails', price: 1200, description: 'Rote Herzen schweben hinter dir empor' },
+  { id: 'trail_sterne', name: 'Sternenspur', category: 'trails', price: 2000, description: 'Funkelnde Sterne auf deinem Weg' },
+  { id: 'trail_pilze', name: 'Pilzspur', category: 'trails', price: 1000, description: 'Kleine Pilze spriessen wo du gehst' },
+  { id: 'trail_wither', name: 'Witherspur', category: 'trails', price: 4000, description: 'Schwarzer Rauch des Withers hinter dir' },
+  // ── Partikel (Neue Kategorie) ──
+  { id: 'particle_feuer', name: 'Feuerwirbel', category: 'particles', price: 1500, description: 'Wirbelnde Feuerflammen um dich herum' },
+  { id: 'particle_wasser', name: 'Wasserspritzer', category: 'particles', price: 1500, description: 'Sprudelnde Wassertropfen um dich' },
+  { id: 'particle_erde', name: 'Erdbrocken', category: 'particles', price: 1500, description: 'Kleine Steinchen schweben um dich' },
+  { id: 'particle_luft', name: 'Windwirbel', category: 'particles', price: 1500, description: 'Unsichtbare Winde wirbeln um dich' },
+  { id: 'particle_endportal', name: 'Endportal Strudel', category: 'particles', price: 5000, description: 'Mystischer Strudel wie ein Endportal' },
+  { id: 'particle_totem', name: 'Totem Partikel', category: 'particles', price: 3000, description: 'Goldene Totem-der-Unsterblichkeit Funken' },
+  { id: 'particle_seelen', name: 'Seelenfeuer', category: 'particles', price: 3500, description: 'Blaue Seelenflammen lodern um dich' },
+  { id: 'particle_redstone', name: 'Redstone Staub', category: 'particles', price: 2000, description: 'Roter Redstone-Staub wirbelt umher' },
+  { id: 'particle_nether', name: 'Nether Asche', category: 'particles', price: 2500, description: 'Gluehende Asche aus dem Nether' },
+  { id: 'particle_kirschbluete', name: 'Kirschblueten Regen', category: 'particles', price: 1800, description: 'Rosa Blueten regnen sanft herab' },
+  { id: 'particle_drache', name: 'Drachenatem', category: 'particles', price: 6000, description: 'Violetter Atem des Enderdrachen' },
+  { id: 'particle_schatten', name: 'Schattenrauch', category: 'particles', price: 4000, description: 'Schwarzer Rauch der Schattenburg' },
+  { id: 'particle_sonnenstaub', name: 'Sonnenstaub', category: 'particles', price: 4000, description: 'Goldener Staub der SonnensBurg' },
+  { id: 'particle_lichtfunken', name: 'Lichtfunken', category: 'particles', price: 4000, description: 'Helle Funken der HelichkeitsBurg' },
+  { id: 'particle_schneesturm', name: 'Schneesturm', category: 'particles', price: 2500, description: 'Wirbelnder Schneesturm um dich' },
+  { id: 'particle_gluehwurm', name: 'Gluehwuermchen', category: 'particles', price: 2000, description: 'Leuchtende Gluehwuermchen schwirren umher' },
+  // ── Accessoires (Neue Kategorie) ──
+  { id: 'acc_brille', name: 'Sonnenbrille', category: 'accessories', price: 500, description: 'Coole dunkle Sonnenbrille' },
+  { id: 'acc_monokel', name: 'Monokel', category: 'accessories', price: 800, description: 'Elegantes Monokel fuer Gentlemen' },
+  { id: 'acc_schal_schatten', name: 'Schattenburger Schal', category: 'accessories', price: 1500, description: 'Dunkler Schal der Schattenburg' },
+  { id: 'acc_schal_licht', name: 'Helichkeits Schal', category: 'accessories', price: 1500, description: 'Leuchtender Schal der HelichkeitsBurg' },
+  { id: 'acc_schal_sonne', name: 'Sonnenburger Schal', category: 'accessories', price: 1500, description: 'Goldener Schal der SonnensBurg' },
+  { id: 'acc_schwert_ruecken', name: 'Rueckenschwert', category: 'accessories', price: 3000, description: 'Dekoratives Schwert auf dem Ruecken' },
+  { id: 'acc_fluegel_mini', name: 'Mini Fluegel', category: 'accessories', price: 2000, description: 'Winzige dekorative Fluegel am Ruecken' },
+  { id: 'acc_umhang_feuer', name: 'Feuerumhang', category: 'accessories', price: 4000, description: 'Umhang aus lodernden Flammen' },
+  { id: 'acc_kette_diamant', name: 'Diamantkette', category: 'accessories', price: 5000, description: 'Funkelnde Halskette aus Diamanten' },
+  { id: 'acc_ring_ender', name: 'Enderring', category: 'accessories', price: 3500, description: 'Mystischer Ring mit Enderperle' },
+  { id: 'acc_guertel_redstone', name: 'Redstoneguertel', category: 'accessories', price: 2500, description: 'Leuchtender Guertel aus Redstone' },
+  { id: 'acc_schulterdrache', name: 'Schulterdrache', category: 'accessories', price: 8000, description: 'Kleiner Drache sitzt auf deiner Schulter' },
+  { id: 'acc_rucksack', name: 'Abenteurer Rucksack', category: 'accessories', price: 1800, description: 'Praktischer Rucksack fuer Abenteurer' },
+  { id: 'acc_banner', name: 'Rueckenbanner', category: 'accessories', price: 2200, description: 'Stolzes Banner auf dem Ruecken' },
+  { id: 'acc_laterne', name: 'Schwebelaterne', category: 'accessories', price: 3000, description: 'Magische Laterne die neben dir schwebt' },
+  { id: 'acc_buch', name: 'Zauberbuch', category: 'accessories', price: 4500, description: 'Schwebendes offenes Zauberbuch mit Runen' },
 ];
 
 const COINS_PER_MINUTE = 2;
@@ -738,162 +847,256 @@ ipcMain.handle('launch-instance', async (ev, instId) => {
 });
 
 async function doLaunchGame(p, mcVersion, instId) {
+  const { spawn } = require('child_process');
   try {
     // Find Java
     const customJava = store.get('settings.javaPath', '');
     let javaPath = (customJava && fs.existsSync(customJava)) ? customJava : findJava();
-
     if (!javaPath) {
-      // Try to download Java 21
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('launch-progress', { type: 'Java 21 wird heruntergeladen...', task: 0, total: 100 });
-      }
-      try {
-        javaPath = await downloadJava();
-      } catch(e) {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Java wird heruntergeladen...', task: 0, total: 100 });
+      try { javaPath = await downloadJava(); } catch(e) {
         const osHint = process.platform === 'win32' ? 'os=windows' : process.platform === 'darwin' ? 'os=mac' : 'os=linux';
-        return { success: false, error: `Java nicht gefunden!\n\nBitte installiere Java 21:\nhttps://adoptium.net/de/temurin/releases/?${osHint}&arch=x64&package=jre&version=21\n\nOder installiere den offiziellen Minecraft Launcher (der bringt Java mit).\n\nDanach Launcher neu starten.` };
+        return { success: false, error: `Java nicht gefunden!\nhttps://adoptium.net/de/temurin/releases/?${osHint}&arch=x64&package=jre&version=21` };
       }
     }
 
-    const { Client, Authenticator } = require('minecraft-launcher-core');
-    const launcher = new Client();
     const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
 
-    // Copy instance mods/resourcepacks/shaders into MC game directory before launch
+    // Copy instance mods/resourcepacks/shaders into MC game directory
     if (instId) {
       const instDir = path.join(mcRoot, 'instances', instId);
-      const gameDirs = {
-        mods: path.join(mcRoot, 'mods'),
-        resourcepacks: path.join(mcRoot, 'resourcepacks'),
-        shaderpacks: path.join(mcRoot, 'shaderpacks'),
-      };
-      // Clean old mods from game dir (only chibi-managed ones)
-      for (const [sub, gameDir] of Object.entries(gameDirs)) {
+      for (const sub of ['mods', 'resourcepacks', 'shaderpacks']) {
+        const gameDir = path.join(mcRoot, sub);
         fs.mkdirSync(gameDir, { recursive: true });
-        // Clear game dir
-        try {
-          const files = fs.readdirSync(gameDir);
-          for (const f of files) { try { fs.unlinkSync(path.join(gameDir, f)); } catch(e) {} }
-        } catch(e) {}
-        // Copy instance files to game dir
-        const instSub = sub === 'shaderpacks' ? 'shaderpacks' : sub;
-        const srcDir = path.join(instDir, instSub);
+        try { for (const f of fs.readdirSync(gameDir)) { try { fs.unlinkSync(path.join(gameDir, f)); } catch(e) {} } } catch(e) {}
+        const srcDir = path.join(instDir, sub);
         if (fs.existsSync(srcDir)) {
-          const files = fs.readdirSync(srcDir);
-          for (const f of files) {
-            try { fs.copyFileSync(path.join(srcDir, f), path.join(gameDir, f)); } catch(e) { console.error('Copy error:', e); }
+          for (const f of fs.readdirSync(srcDir)) {
+            try { fs.copyFileSync(path.join(srcDir, f), path.join(gameDir, f)); } catch(e) {}
           }
         }
       }
-      console.log('[Launch] Copied instance files from', instDir, 'to', mcRoot);
     }
 
-    // Use Microsoft account if linked, otherwise offline
+    // Auth
     const mcAccount = store.get('mcAccount');
-    let auth;
+    let authName, authUuid, authToken;
     if (mcAccount && mcAccount.accessToken) {
-      auth = {
-        access_token: mcAccount.accessToken,
-        client_token: mcAccount.uuid,
-        uuid: mcAccount.uuid,
-        name: mcAccount.name,
-        user_properties: '{}',
-      };
+      authName = mcAccount.name; authUuid = mcAccount.uuid; authToken = mcAccount.accessToken;
     } else {
-      auth = Authenticator.getAuth(p.name);
+      authName = p.name; authUuid = '00000000-0000-0000-0000-000000000000'; authToken = '0';
     }
 
-    // Determine loader - auto-upgrade to Fabric if instance has mods
-    let versionConfig = { number: mcVersion, type: 'release' };
+    // Check if Fabric needed
     let useFabric = false;
     if (instId) {
       const instances = store.get('instances', []);
       const currentInst = instances.find(i => i.id === instId);
       if (currentInst) {
         const hasMods = (currentInst.mods || []).length > 0;
-        // Use Fabric if selected OR if instance has mods (mods need a loader)
         if (currentInst.loader === 'fabric' || hasMods) {
           useFabric = true;
-          // Auto-upgrade instance to fabric if it was vanilla with mods
-          if (currentInst.loader === 'vanilla' && hasMods) {
-            currentInst.loader = 'fabric';
-            store.set('instances', instances);
-            console.log('[Launch] Auto-upgraded instance to Fabric (has mods)');
-          }
+          if (currentInst.loader === 'vanilla' && hasMods) { currentInst.loader = 'fabric'; store.set('instances', instances); }
         }
       }
     }
 
-    if (useFabric) {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('launch-progress', { type: 'Fabric Loader wird installiert...', task: 0, total: 100 });
+    // Step 1: Download vanilla MC via MCLC (assets, libraries, client JAR)
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Minecraft wird heruntergeladen...', task: 0, total: 100 });
+
+    const { Client, Authenticator } = require('minecraft-launcher-core');
+    const mclcAuth = mcAccount && mcAccount.accessToken ? {
+      access_token: mcAccount.accessToken, client_token: mcAccount.uuid,
+      uuid: mcAccount.uuid, name: mcAccount.name, user_properties: '{}'
+    } : Authenticator.getAuth(p.name);
+
+    // Use MCLC for vanilla download + vanilla launch
+    if (!useFabric) {
+      const mclc = new Client();
+      let lastLines = [];
+      mclc.on('debug', (e) => { console.log('[MC]', e); lastLines.push(String(e)); if(lastLines.length>80) lastLines.shift(); });
+      mclc.on('data', (e) => { console.log('[MC]', e); lastLines.push(String(e)); if(lastLines.length>80) lastLines.shift(); });
+      mclc.on('error', (e) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-error', String(e)); });
+      mclc.on('progress', (e) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', e); });
+      mclc.on('close', (code) => {
+        if (code !== 0 && mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-error', 'Minecraft beendet (Code ' + code + ')\n\n' + lastLines.slice(-20).join('\n'));
+        awardCoins(p.name);
+      });
+      store.set(`session_start_${p.name}`, Date.now());
+      mclc.launch({
+        authorization: mclcAuth, root: mcRoot, javaPath,
+        version: { number: mcVersion, type: 'release' },
+        memory: { max: store.get('settings.ram', '4') + 'G', min: '2G' },
+        javaArgs: ['-XX:+UseG1GC', '-XX:+ParallelRefProcEnabled', '-XX:+UnlockExperimentalVMOptions', '-XX:+DisableExplicitGC', '-XX:+AlwaysPreTouch'],
+        server: { host: 'chibi.art', port: '25565' },
+        overrides: { gameDirectory: mcRoot },
+      });
+      return { success: true };
+    }
+
+    // Step 2 (Fabric): First download vanilla via MCLC, wait for completion
+    await new Promise((resolve) => {
+      const dl = new Client();
+      let vanillaReady = false;
+      dl.on('progress', (e) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', e); });
+      dl.on('debug', (e) => console.log('[DL]', e));
+      dl.on('data', () => { if (!vanillaReady) { vanillaReady = true; } });
+      dl.on('close', () => resolve());
+      dl.on('error', () => resolve());
+      dl.launch({
+        authorization: mclcAuth, root: mcRoot, javaPath,
+        version: { number: mcVersion, type: 'release' },
+        memory: { max: '1G', min: '512M' },
+        overrides: { gameDirectory: mcRoot },
+      });
+    });
+
+    // Verify vanilla files exist
+    const vanillaJsonPath = path.join(mcRoot, 'versions', mcVersion, mcVersion + '.json');
+    const clientJar = path.join(mcRoot, 'versions', mcVersion, mcVersion + '.jar');
+    if (!fs.existsSync(vanillaJsonPath) || !fs.existsSync(clientJar)) {
+      return { success: false, error: 'Vanilla Minecraft konnte nicht heruntergeladen werden. Version ' + mcVersion + ' existiert moeglicherweise nicht.' };
+    }
+
+    // Step 3: Install Fabric
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Fabric wird installiert...', task: 50, total: 100 });
+    const fabricVersionId = await installFabricLoader(mcRoot, mcVersion, javaPath);
+    if (!fabricVersionId) {
+      return { success: false, error: 'Fabric Loader konnte nicht installiert werden.' };
+    }
+
+    // Step 4: Build classpath manually from Fabric + Vanilla version JSONs
+    const fabricJsonPath = path.join(mcRoot, 'versions', fabricVersionId, fabricVersionId + '.json');
+    if (!fs.existsSync(fabricJsonPath)) {
+      return { success: false, error: 'Fabric Version JSON nicht gefunden.' };
+    }
+
+    const fabricJson = JSON.parse(fs.readFileSync(fabricJsonPath, 'utf8'));
+    const vanillaJson = JSON.parse(fs.readFileSync(vanillaJsonPath, 'utf8'));
+
+    const sep = process.platform === 'win32' ? ';' : ':';
+    const libDir = path.join(mcRoot, 'libraries');
+    const classpathParts = [];
+
+    // Helper: convert Maven coordinate to file path
+    function mavenToPath(name) {
+      const parts = name.split(':');
+      if (parts.length < 3) return null;
+      const [group, artifact, version] = parts;
+      return path.join(libDir, group.replace(/\./g, '/'), artifact, version, `${artifact}-${version}.jar`);
+    }
+
+    // Add Fabric libraries
+    for (const lib of (fabricJson.libraries || [])) {
+      if (!lib.name) continue;
+      const jarPath = mavenToPath(lib.name);
+      if (!jarPath) continue;
+      if (fs.existsSync(jarPath)) { classpathParts.push(jarPath); continue; }
+      // Download missing Fabric library
+      if (lib.url) {
+        const parts = lib.name.split(':');
+        const [group, artifact, version] = parts;
+        const groupPath = group.replace(/\./g, '/');
+        const jarName = `${artifact}-${version}.jar`;
+        const libUrl = `${lib.url}${groupPath}/${artifact}/${version}/${jarName}`;
+        fs.mkdirSync(path.dirname(jarPath), { recursive: true });
+        try { await downloadFile(libUrl, jarPath); classpathParts.push(jarPath); console.log('[Fabric] Downloaded:', jarName); }
+        catch(e) { console.warn('[Fabric] Missing:', jarName); }
       }
-      const fabricVersionId = await installFabricLoader(mcRoot, mcVersion, javaPath);
-      if (fabricVersionId) {
-        versionConfig = { number: mcVersion, type: 'release', custom: fabricVersionId };
-        console.log('[Launch] Using Fabric version:', fabricVersionId);
+    }
+
+    // Add vanilla libraries
+    for (const lib of (vanillaJson.libraries || [])) {
+      if (!lib.name) continue;
+      if (lib.rules) {
+        const osName = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'osx' : 'linux';
+        const dominated = lib.rules.some(r => r.action === 'allow' && r.os && r.os.name !== osName);
+        if (dominated) continue;
+      }
+      // Use artifact download path if available
+      if (lib.downloads && lib.downloads.artifact && lib.downloads.artifact.path) {
+        const jarPath = path.join(libDir, lib.downloads.artifact.path);
+        if (fs.existsSync(jarPath)) classpathParts.push(jarPath);
       } else {
-        console.warn('[Launch] Fabric installation fehlgeschlagen, starte Vanilla');
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('launch-error', 'Fabric Loader konnte nicht installiert werden. Mods werden nicht geladen.');
-        }
+        const jarPath = mavenToPath(lib.name);
+        if (jarPath && fs.existsSync(jarPath)) classpathParts.push(jarPath);
       }
     }
 
-    const opts = {
-      authorization: auth,
-      root: mcRoot,
-      javaPath: javaPath,
-      version: versionConfig,
-      memory: { max: store.get('settings.ram', '4') + 'G', min: '2G' },
-      javaArgs: [
-        '-XX:+UseG1GC',
-        '-XX:+ParallelRefProcEnabled',
-        '-XX:+UnlockExperimentalVMOptions',
-        '-XX:+DisableExplicitGC',
-        '-XX:+AlwaysPreTouch',
-      ],
-      server: { host: 'chibi.art', port: '25565' },
-      overrides: {
-        gameDirectory: mcRoot,
-      },
-    };
+    // Add vanilla client JAR
+    classpathParts.push(clientJar);
 
+    const classpath = classpathParts.join(sep);
+    const mainClass = fabricJson.mainClass || 'net.fabricmc.loader.impl.launch.knot.KnotClient';
+    const assetIndex = vanillaJson.assetIndex ? vanillaJson.assetIndex.id : mcVersion;
+    const nativesDir = path.join(mcRoot, 'versions', mcVersion, 'natives');
+
+    // Extract natives if needed
+    if (!fs.existsSync(nativesDir)) fs.mkdirSync(nativesDir, { recursive: true });
+
+    const ramMax = store.get('settings.ram', '4') + 'G';
+    const javaExe = findJavaExe(javaPath) || javaPath;
+
+    const args = [
+      `-Xmx${ramMax}`, '-Xms2G',
+      '-XX:+UseG1GC', '-XX:+ParallelRefProcEnabled',
+      '-XX:+UnlockExperimentalVMOptions', '-XX:+DisableExplicitGC', '-XX:+AlwaysPreTouch',
+      `-Djava.library.path=${nativesDir}`,
+      '-Dminecraft.launcher.brand=chibi-launcher',
+      '-Dminecraft.launcher.version=1.1.0',
+      '-cp', classpath,
+      mainClass,
+      '--username', authName,
+      '--version', fabricVersionId,
+      '--gameDir', mcRoot,
+      '--assetsDir', path.join(mcRoot, 'assets'),
+      '--assetIndex', assetIndex,
+      '--uuid', authUuid.replace(/-/g, ''),
+      '--accessToken', authToken,
+      '--userType', 'msa',
+      '--versionType', 'release',
+      '--server', 'chibi.art',
+      '--port', '25565',
+    ];
+
+    console.log('[Launch] Java:', javaExe);
+    console.log('[Launch] MainClass:', mainClass);
+    console.log('[Launch] Classpath entries:', classpathParts.length);
+    console.log('[Launch] Game dir:', mcRoot);
+
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Minecraft + Fabric startet...', task: 95, total: 100 });
+
+    const mcProcess = spawn(javaExe, args, { cwd: mcRoot, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let lastLines = [];
-
-    // Register events BEFORE launch
-    launcher.on('debug', (e) => { console.log('[MC]', e); lastLines.push(String(e)); if(lastLines.length>80) lastLines.shift(); });
-    launcher.on('data', (e) => { console.log('[MC Data]', e); lastLines.push(String(e)); if(lastLines.length>80) lastLines.shift(); });
-    launcher.on('error', (e) => {
-      console.error('[MC Error]', e);
-      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-error', String(e));
-    });
-    launcher.on('progress', (e) => {
-      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', e);
-    });
-    launcher.on('close', (code) => {
+    mcProcess.stdout.on('data', (d) => { const l = d.toString(); console.log('[MC]', l.trim()); lastLines.push(l); if(lastLines.length>80) lastLines.shift(); });
+    mcProcess.stderr.on('data', (d) => { const l = d.toString(); console.log('[MC ERR]', l.trim()); lastLines.push(l); if(lastLines.length>80) lastLines.shift(); });
+    mcProcess.on('error', (e) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-error', 'Start fehlgeschlagen: ' + e.message); });
+    mcProcess.on('close', (code) => {
       if (code !== 0 && mainWindow && !mainWindow.isDestroyed()) {
-        const errorLog = lastLines.slice(-20).join('\n');
-        mainWindow.webContents.send('launch-error', 'Minecraft beendet (Code ' + code + ')\nJava: ' + javaPath + '\n\n' + errorLog);
+        mainWindow.webContents.send('launch-error', 'Minecraft beendet (Code ' + code + ')\nMainClass: ' + mainClass + '\n\n' + lastLines.slice(-25).join('\n'));
       }
-      const start = store.get(`session_start_${p.name}`);
-      if (start) {
-        const mins = Math.floor((Date.now() - start) / 60000);
-        const earned = mins * COINS_PER_MINUTE;
-        const cur = store.get(`coins_${p.name}`, 0);
-        store.set(`coins_${p.name}`, cur + earned);
-        store.delete(`session_start_${p.name}`);
-        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('coins-updated', { coins: cur + earned, earned, minutes: mins });
-      }
+      awardCoins(p.name);
     });
 
-    // NOW launch
     store.set(`session_start_${p.name}`, Date.now());
-    launcher.launch(opts);
-
+    mcProcess.unref();
     return { success: true };
-  } catch(e) { return { success: false, error: e.message || 'Start fehlgeschlagen' }; }
+  } catch(e) {
+    console.error('[Launch] Error:', e);
+    return { success: false, error: e.message || 'Start fehlgeschlagen' };
+  }
+}
+
+function awardCoins(playerName) {
+  const start = store.get(`session_start_${playerName}`);
+  if (start) {
+    const mins = Math.floor((Date.now() - start) / 60000);
+    const earned = mins * COINS_PER_MINUTE;
+    const cur = store.get(`coins_${playerName}`, 0);
+    store.set(`coins_${playerName}`, cur + earned);
+    store.delete(`session_start_${playerName}`);
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('coins-updated', { coins: cur + earned, earned, minutes: mins });
+  }
 }
 
 // Cosmetics
