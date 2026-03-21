@@ -119,8 +119,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 
 /* Cosmetics */
 .cosm-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.cat-tabs{display:flex;gap:8px;margin-bottom:16px}
-.cat-btn{padding:7px 18px;border:1px solid var(--border);background:0 0;color:var(--dim);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;transition:.2s}
+.cat-tabs{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:6px;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}
+.cat-tabs::-webkit-scrollbar{height:4px}
+.cat-tabs::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.cat-btn{padding:7px 18px;border:1px solid var(--border);background:0 0;color:var(--dim);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;transition:.2s;white-space:nowrap;flex-shrink:0}
 .cat-btn:hover{border-color:var(--accent);color:var(--txt)}
 .cat-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .cosm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
@@ -175,6 +177,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .inst-tab:hover{color:var(--txt);background:var(--bg3)}
 .inst-tab.active{color:var(--txt);background:var(--bg3);border-bottom:2px solid var(--accent)}
 .inst-panel{display:none}.inst-panel.active{display:block}
+.mod-card{display:flex;align-items:center;gap:10px;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px}
+.mod-icon{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--bg)}
+.mod-info{flex:1;min-width:0}
+.mod-name{font-weight:600;font-size:13px}
+.mod-file{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .mc-account-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
 .mc-account-name{color:var(--green);font-weight:700;font-size:14px}

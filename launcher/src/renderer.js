@@ -158,15 +158,36 @@ function renderInstanceContent() {
   // Mods
   const mods = currentInstance.mods || [];
   document.getElementById('inst-mod-list').innerHTML = mods.length === 0 ? '<span class="dim">Keine Mods</span>' :
-    mods.map(m => `<span class="installed-tag">${esc(m.name)} <span class="remove" onclick="removeFromInstance('${currentInstance.id}','${esc(m.file)}','mod')">&times;</span></span>`).join('');
+    mods.map(m => `<div class="mod-card">
+      <img class="mod-icon" src="${m.icon||''}" onerror="this.style.display='none'" alt="">
+      <div class="mod-info">
+        <div class="mod-name">${esc(m.title||m.name)}</div>
+        <div class="mod-file dim">${esc(m.file)}</div>
+      </div>
+      <button class="inst-delete" onclick="removeFromInstance('${currentInstance.id}','${esc(m.file)}','mod')">&times;</button>
+    </div>`).join('');
   // Resource Packs
   const rps = currentInstance.resourcepacks || [];
   document.getElementById('inst-rp-list').innerHTML = rps.length === 0 ? '<span class="dim">Keine Resource Packs</span>' :
-    rps.map(m => `<span class="installed-tag">${esc(m.name)} <span class="remove" onclick="removeFromInstance('${currentInstance.id}','${esc(m.file)}','resourcepack')">&times;</span></span>`).join('');
+    rps.map(m => `<div class="mod-card">
+      <img class="mod-icon" src="${m.icon||''}" onerror="this.style.display='none'" alt="">
+      <div class="mod-info">
+        <div class="mod-name">${esc(m.title||m.name)}</div>
+        <div class="mod-file dim">${esc(m.file)}</div>
+      </div>
+      <button class="inst-delete" onclick="removeFromInstance('${currentInstance.id}','${esc(m.file)}','resourcepack')">&times;</button>
+    </div>`).join('');
   // Shaders
   const shaders = currentInstance.shaders || [];
   document.getElementById('inst-shader-list').innerHTML = shaders.length === 0 ? '<span class="dim">Keine Shaders</span>' :
-    shaders.map(m => `<span class="installed-tag">${esc(m.name)} <span class="remove" onclick="removeFromInstance('${currentInstance.id}','${esc(m.file)}','shader')">&times;</span></span>`).join('');
+    shaders.map(m => `<div class="mod-card">
+      <img class="mod-icon" src="${m.icon||''}" onerror="this.style.display='none'" alt="">
+      <div class="mod-info">
+        <div class="mod-name">${esc(m.title||m.name)}</div>
+        <div class="mod-file dim">${esc(m.file)}</div>
+      </div>
+      <button class="inst-delete" onclick="removeFromInstance('${currentInstance.id}','${esc(m.file)}','shader')">&times;</button>
+    </div>`).join('');
   document.getElementById('inst-detail-modcount').textContent = mods.length + ' Mods';
 }
 

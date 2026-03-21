@@ -1012,6 +1012,17 @@ ipcMain.handle('add-to-instance', async (ev, instId, slug, type) => {
     if (!file) return { success: false, error: 'Keine Datei fuer ' + slug };
     console.log('[Modrinth] Downloading', file.filename, 'from', file.url);
 
+    // Fetch project info for title and icon
+    let projectTitle = slug;
+    let projectIcon = '';
+    try {
+      const projectInfo = await modrinthGet(`/project/${slug}`);
+      if (projectInfo) {
+        projectTitle = projectInfo.title || slug;
+        projectIcon = projectInfo.icon_url || '';
+      }
+    } catch(e) { console.warn('[Modrinth] Could not fetch project info for', slug); }
+
     // Download to instance dir
     let subdir;
     if (type === 'mod') subdir = 'mods';
@@ -1027,29 +1038,39 @@ ipcMain.handle('add-to-instance', async (ev, instId, slug, type) => {
     const list = type === 'resourcepack' ? 'resourcepacks' : type === 'shader' ? 'shaders' : 'mods';
     if (!inst[list]) inst[list] = [];
     if (!inst[list].find(m => m.file === file.filename)) {
-      inst[list].push({ name: slug, file: file.filename });
+      inst[list].push({ name: slug, file: file.filename, title: projectTitle, icon: projectIcon });
     }
 
     // Auto-install required dependencies (e.g. Iris needs Sodium)
     if (type === 'mod' && latest.dependencies) {
+      const modsDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, 'mods');
+      fs.mkdirSync(modsDir, { recursive: true });
       for (const dep of latest.dependencies) {
         if (dep.dependency_type !== 'required' || !dep.project_id) continue;
-        const alreadyHas = (inst.mods || []).some(m => m.name === dep.project_id);
-        if (alreadyHas) continue;
         try {
-          console.log('[Instance] Auto-installing dependency:', dep.project_id);
+          const depProj = await modrinthGet(`/project/${dep.project_id}`);
+          const depSlug = depProj.slug || dep.project_id;
+          const depTitle = depProj.title || depSlug;
+          const depIcon = depProj.icon_url || '';
+          // Check if already installed
+          const alreadyHas = (inst.mods || []).some(m =>
+            m.name === depSlug || m.name === dep.project_id ||
+            (m.file && m.file.toLowerCase().includes(depSlug.toLowerCase()))
+          );
+          if (alreadyHas) continue;
+          console.log('[Instance] Auto-installing dependency:', depTitle);
           let depVersions = await modrinthGet(`/project/${dep.project_id}/version?game_versions=["${inst.version}"]&loaders=["fabric"]`);
+          if (!depVersions || depVersions.length === 0) depVersions = await modrinthGet(`/project/${dep.project_id}/version?loaders=["fabric"]`);
           if (!depVersions || depVersions.length === 0) depVersions = await modrinthGet(`/project/${dep.project_id}/version`);
           if (depVersions && depVersions.length > 0) {
             const depFile = (depVersions[0].files.find(f => f.primary)) || depVersions[0].files[0];
             if (depFile && !inst.mods.some(m => m.file === depFile.filename)) {
-              await downloadFile(depFile.url, path.join(instDir, depFile.filename));
-              inst.mods.push({ name: dep.project_id, file: depFile.filename });
-              // Get project name for logging
-              try { const proj = await modrinthGet(`/project/${dep.project_id}`); console.log('[Instance] Installed dependency:', proj.title || dep.project_id); } catch(e) {}
+              await downloadFile(depFile.url, path.join(modsDir, depFile.filename));
+              inst.mods.push({ name: depSlug, file: depFile.filename, title: depTitle, icon: depIcon });
+              console.log('[Instance] Installed:', depTitle, depFile.filename);
             }
           }
-        } catch(e) { console.warn('[Instance] Dependency install failed:', dep.project_id, e.message); }
+        } catch(e) { console.warn('[Instance] Dep failed:', dep.project_id, e.message); }
       }
     }
 
@@ -1072,7 +1093,7 @@ ipcMain.handle('add-to-instance', async (ev, instId, slug, type) => {
             if (apiFile) {
               const apiDest = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, 'mods', apiFile.filename);
               await downloadFile(apiFile.url, apiDest);
-              inst.mods.push({ name: 'fabric-api', file: apiFile.filename });
+              inst.mods.push({ name: 'fabric-api', file: apiFile.filename, title: 'Fabric API', icon: '' });
               console.log('[Instance] Fabric API installed:', apiFile.filename);
             }
           }
