@@ -74,29 +74,52 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.api.onCoinsUpdated(d => { updateCoins(d.coins); if(d.earned>0) toast('+'+d.earned+' Coins!'); document.getElementById('btn-play').classList.remove('hidden'); document.getElementById('play-status').classList.add('hidden'); });
   window.api.onLaunchError(e => { document.getElementById('btn-play').classList.remove('hidden'); document.getElementById('play-status').classList.add('hidden'); document.getElementById('error-log').textContent=e; document.getElementById('error-log').classList.remove('hidden'); });
   window.api.onLaunchProgress(p => { if(p.type) document.getElementById('play-status').innerHTML='<div class="spinner"></div><span>'+p.type+' ('+Math.round((p.task/p.total)*100)+'%)</span>'; });
-  window.api.onUpdateStatus(msg => toast(msg));
-
-  // Update Banner
+  // ── UPDATE CHECK (direkt im Renderer mit fetch - kein IPC noetig) ──
+  const APP_VERSION = '1.3.2';
   let updateDownloadUrl = null;
-  window.api.onUpdateChecking(() => {
-    toast('Suche nach Updates...');
-  });
-  window.api.onUpdateUpToDate(() => {
-    toast('Auf dem neuesten Stand!');
-  });
-  window.api.onUpdateAvailable((info) => {
-    updateDownloadUrl = info.url;
-    document.getElementById('update-version').textContent = 'Version ' + info.version + ' ist verfuegbar';
-    document.getElementById('update-banner').classList.remove('hidden');
-  });
-  window.api.onUpdateError((err) => {
-    toast('Update-Fehler: ' + err);
-  });
+
+  async function checkForUpdates() {
+    try {
+      toast('Suche nach Updates...');
+      const res = await fetch('https://api.github.com/repos/deanischarf-max/chibi-launcher/releases/latest');
+      const release = await res.json();
+      const latest = (release.tag_name || '').replace(/^v/, '');
+      if (!latest) { toast('Update-Check: Keine Version gefunden'); return; }
+
+      // Compare versions
+      const cur = APP_VERSION.split('.').map(Number);
+      const lat = latest.split('.').map(Number);
+      let isNewer = false;
+      for (let i = 0; i < 3; i++) {
+        if ((lat[i]||0) > (cur[i]||0)) { isNewer = true; break; }
+        if ((lat[i]||0) < (cur[i]||0)) break;
+      }
+
+      if (isNewer) {
+        const exe = (release.assets||[]).find(a => a.name.endsWith('.exe'));
+        updateDownloadUrl = exe ? exe.browser_download_url : release.html_url;
+        document.getElementById('update-version').textContent = 'Version ' + latest + ' ist verfuegbar (du hast v' + APP_VERSION + ')';
+        document.getElementById('update-banner').classList.remove('hidden');
+        toast('Update v' + latest + ' verfuegbar!');
+      } else {
+        toast('Auf dem neuesten Stand! (v' + APP_VERSION + ')');
+      }
+    } catch(e) {
+      toast('Update-Check fehlgeschlagen: ' + e.message);
+    }
+  }
+
+  // Check immediately
+  checkForUpdates();
+
+  // Update button opens browser
   document.getElementById('btn-update').onclick = async () => {
-    document.getElementById('btn-update').textContent = 'Oeffne Download...';
-    await window.api.startUpdate(updateDownloadUrl);
-    toast('Download im Browser geoeffnet!');
-    setTimeout(() => { document.getElementById('btn-update').textContent = 'Update installieren'; }, 3000);
+    if (updateDownloadUrl) {
+      await window.api.openExternal(updateDownloadUrl);
+      toast('Download im Browser geoeffnet!');
+    } else {
+      await window.api.openExternal('https://github.com/deanischarf-max/chibi-launcher/releases/latest');
+    }
   };
 
   // ── Browse Tab ──

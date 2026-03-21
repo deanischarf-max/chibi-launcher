@@ -467,66 +467,11 @@ app.whenReady().then(() => {
   store = new SimpleStore();
   createWindow();
 
-  // ── Custom Update Check (kein electron-updater - das funktioniert nicht) ──
-  const CURRENT_VERSION = require('./package.json').version;
-  const GITHUB_RELEASES_API = 'https://api.github.com/repos/deanischarf-max/chibi-launcher/releases/latest';
-
-  async function checkForUpdates() {
-    try {
-      console.log('[Update] Checking... Current version:', CURRENT_VERSION);
-      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-checking');
-
-      const release = await new Promise((resolve, reject) => {
-        const https = require('https');
-        https.get(GITHUB_RELEASES_API, { headers: { 'User-Agent': 'ChibiLauncher/' + CURRENT_VERSION, Accept: 'application/vnd.github+json' } }, res => {
-          let d = ''; res.on('data', c => d += c);
-          res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
-        }).on('error', reject);
-      });
-
-      const latestVersion = (release.tag_name || '').replace(/^v/, '');
-      console.log('[Update] Latest version:', latestVersion);
-
-      if (!latestVersion) {
-        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-uptodate');
-        return;
-      }
-
-      // Compare versions
-      const current = CURRENT_VERSION.split('.').map(Number);
-      const latest = latestVersion.split('.').map(Number);
-      let isNewer = false;
-      for (let i = 0; i < 3; i++) {
-        if ((latest[i] || 0) > (current[i] || 0)) { isNewer = true; break; }
-        if ((latest[i] || 0) < (current[i] || 0)) break;
-      }
-
-      if (isNewer) {
-        // Find download URL for Windows exe
-        const exeAsset = (release.assets || []).find(a => a.name.endsWith('.exe'));
-        const downloadUrl = exeAsset ? exeAsset.browser_download_url : release.html_url;
-        console.log('[Update] Update available!', latestVersion, downloadUrl);
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('update-available', { version: latestVersion, url: downloadUrl });
-        }
-      } else {
-        console.log('[Update] Up to date!');
-        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-uptodate');
-      }
-    } catch(e) {
-      console.error('[Update] Check failed:', e.message);
-      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-error', e.message);
-    }
-  }
-
-  // IPC: user clicks "Update installieren" → open browser to download
-  ipcMain.handle('start-update', (ev, url) => {
-    shell.openExternal(url || 'https://github.com/deanischarf-max/chibi-launcher/releases/latest');
+  // IPC: open URL in browser
+  ipcMain.handle('open-external', (ev, url) => {
+    shell.openExternal(url);
     return true;
   });
-
-  // Check immediately when window is ready
-  mainWindow.webContents.on('did-finish-load', () => checkForUpdates());
 });
 app.on('window-all-closed', () => app.quit());
 
