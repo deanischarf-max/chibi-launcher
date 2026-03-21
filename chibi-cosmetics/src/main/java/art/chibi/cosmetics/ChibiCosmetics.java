@@ -20,33 +20,40 @@ public class ChibiCosmetics implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        LOG.info("[ChibiCosmetics] Initializing...");
-        localData = CosmeticsData.load();
-        if (localData != null) {
-            LOG.info("[ChibiCosmetics] Loaded cosmetics for {}", localData.playerName);
+        try {
+            LOG.info("[ChibiCosmetics] Initializing...");
+            localData = CosmeticsData.load();
+            if (localData != null) {
+                LOG.info("[ChibiCosmetics] Loaded cosmetics for {}", localData.playerName);
+            }
+        } catch (Exception e) {
+            LOG.error("[ChibiCosmetics] Init error (non-fatal):", e);
         }
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.player == null || client.world == null) return;
-            tick++;
+            try {
+                if (client.player == null || client.world == null) return;
+                tick++;
 
-            // Reload every 30s
-            if (tick % 600 == 0) localData = CosmeticsData.load();
-
-            // Render own cosmetics
-            if (localData != null) {
-                renderAllCosmetics(client, client.player, localData);
-            }
-
-            // Render other players' cosmetics
-            for (var entry : playerCosmetics.entrySet()) {
-                AbstractClientPlayerEntity otherPlayer = null;
-                for (var p : client.world.getPlayers()) {
-                    if (p.getUuid().equals(entry.getKey()) && p instanceof AbstractClientPlayerEntity ap) {
-                        otherPlayer = ap;
-                        break;
-                    }
+                // Reload every 30s
+                if (tick % 600 == 0) {
+                    try { localData = CosmeticsData.load(); } catch (Exception e) { /* ignore */ }
                 }
+
+                // Render own cosmetics
+                if (localData != null) {
+                    renderAllCosmetics(client, client.player, localData);
+                }
+
+                // Render other players' cosmetics
+                for (var entry : playerCosmetics.entrySet()) {
+                    AbstractClientPlayerEntity otherPlayer = null;
+                    for (var p : client.world.getPlayers()) {
+                        if (p.getUuid().equals(entry.getKey()) && p instanceof AbstractClientPlayerEntity ap) {
+                            otherPlayer = ap;
+                            break;
+                        }
+                    }
                 if (otherPlayer != null && otherPlayer != client.player) {
                     renderAllCosmetics(client, otherPlayer, entry.getValue());
                 }
@@ -55,6 +62,10 @@ public class ChibiCosmetics implements ClientModInitializer {
             // Broadcast own cosmetics every 5 seconds via custom channel
             if (localData != null && tick % 100 == 0) {
                 broadcastCosmetics(localData);
+            }
+            } catch (Exception e) {
+                // NEVER crash the game - just log and continue
+                if (tick % 600 == 0) LOG.warn("[ChibiCosmetics] Tick error (non-fatal):", e);
             }
         });
 
@@ -86,6 +97,7 @@ public class ChibiCosmetics implements ClientModInitializer {
     // ══════════════════════════════════════════════════════
 
     private void renderAllCosmetics(MinecraftClient client, AbstractClientPlayerEntity player, CosmeticsData data) {
+        try {
         Vec3d pos = player.getPos();
         Vec3d vel = player.getVelocity();
         boolean moving = Math.abs(vel.x) > 0.01 || Math.abs(vel.z) > 0.01;
@@ -263,6 +275,9 @@ public class ChibiCosmetics implements ClientModInitializer {
                 client.world.addParticle(p, leftX, pos.y + 1.5, leftZ, 0, 0.01, 0);
             }
         }
+        } catch (Exception e) {
+            // Never crash - just skip this frame
+        }
     }
 
     // ══════════════════════════════════════════════════════
@@ -270,52 +285,45 @@ public class ChibiCosmetics implements ClientModInitializer {
     // ══════════════════════════════════════════════════════
 
     private ParticleEffect mapParticle(String id, String category) {
-        // Specific mappings first
-        ParticleEffect specific = switch (id) {
-            // Fire themed
-            case String s when s.contains("fire") || s.contains("feuer") || s.contains("flame") || s.contains("flamm") -> ParticleTypes.FLAME;
-            case String s when s.contains("ice") || s.contains("eis") || s.contains("snow") || s.contains("schnee") || s.contains("winter") -> ParticleTypes.SNOWFLAKE;
-            case String s when s.contains("heart") || s.contains("herz") || s.contains("kawaii") -> ParticleTypes.HEART;
-            case String s when s.contains("rainbow") || s.contains("regenbogen") || s.contains("einhorn") || s.contains("end_rod") -> ParticleTypes.END_ROD;
-            case String s when s.contains("cherry") || s.contains("kirsch") || s.contains("bluet") || s.contains("frueh") || s.contains("sakura") || s.contains("ostern") -> ParticleTypes.CHERRY_LEAVES;
-            case String s when s.contains("portal") || s.contains("ender") || s.contains("void") -> ParticleTypes.PORTAL;
-            case String s when s.contains("smoke") || s.contains("schatten") || s.contains("shadow") || s.contains("wither") || s.contains("halloween") -> ParticleTypes.SMOKE;
-            case String s when s.contains("enchant") || s.contains("zauber") || s.contains("magic") || s.contains("aurora") -> ParticleTypes.ENCHANT;
-            case String s when s.contains("lightning") || s.contains("blitz") || s.contains("electric") || s.contains("zeus") || s.contains("funken") || s.contains("neon") -> ParticleTypes.ELECTRIC_SPARK;
-            case String s when s.contains("lava") || s.contains("magma") || s.contains("vulkan") -> ParticleTypes.LAVA;
-            case String s when s.contains("note") || s.contains("musik") || s.contains("noten") || s.contains("dj") || s.contains("sound") -> ParticleTypes.NOTE;
-            case String s when s.contains("dragon") || s.contains("drache") || s.contains("drach") -> ParticleTypes.DRAGON_BREATH;
-            case String s when s.contains("soul") || s.contains("seelen") || s.contains("hades") -> ParticleTypes.SOUL_FIRE_FLAME;
-            case String s when s.contains("sculk") || s.contains("warden") -> ParticleTypes.SOUL_FIRE_FLAME;
-            case String s when s.contains("bubble") || s.contains("blase") || s.contains("wasser") || s.contains("poseidon") || s.contains("tsunami") -> ParticleTypes.SPLASH;
-            case String s when s.contains("redstone") -> ParticleTypes.CRIT;
-            case String s when s.contains("totem") || s.contains("glueh") || s.contains("glow") -> ParticleTypes.TOTEM_OF_UNDYING;
-            case String s when s.contains("creeper") || s.contains("happy") -> ParticleTypes.HAPPY_VILLAGER;
-            case String s when s.contains("cloud") || s.contains("luft") || s.contains("wind") || s.contains("tornado") -> ParticleTypes.CLOUD;
-            case String s when s.contains("crimson") || s.contains("nether") || s.contains("herbst") || s.contains("pilz") -> ParticleTypes.CRIMSON_SPORE;
-            case String s when s.contains("star") || s.contains("stern") || s.contains("sonnen") || s.contains("sun") || s.contains("licht") || s.contains("sommer") || s.contains("odin") -> ParticleTypes.END_ROD;
-            case String s when s.contains("crit") || s.contains("pixel") || s.contains("diamant") || s.contains("diamond") -> ParticleTypes.CRIT;
-            case String s when s.contains("flower") || s.contains("blumen") -> ParticleTypes.CHERRY_LEAVES;
-            // Fallbacks by category
-            default -> null;
-        };
-        if (specific != null) return specific;
+        try {
+            if (id == null) id = "";
+            // Keyword-based particle mapping
+            if (has(id, "fire", "feuer", "flame", "flamm")) return ParticleTypes.FLAME;
+            if (has(id, "ice", "eis", "snow", "schnee", "winter")) return ParticleTypes.SNOWFLAKE;
+            if (has(id, "heart", "herz", "kawaii")) return ParticleTypes.HEART;
+            if (has(id, "rainbow", "regenbogen", "einhorn")) return ParticleTypes.END_ROD;
+            if (has(id, "cherry", "kirsch", "bluet", "frueh", "sakura", "ostern")) return ParticleTypes.CHERRY_LEAVES;
+            if (has(id, "portal", "ender", "void")) return ParticleTypes.PORTAL;
+            if (has(id, "smoke", "schatten", "shadow", "wither", "halloween")) return ParticleTypes.SMOKE;
+            if (has(id, "enchant", "zauber", "magic", "aurora")) return ParticleTypes.ENCHANT;
+            if (has(id, "lightning", "blitz", "electric", "zeus", "funken", "neon")) return ParticleTypes.ELECTRIC_SPARK;
+            if (has(id, "lava", "magma", "vulkan")) return ParticleTypes.LAVA;
+            if (has(id, "note", "musik", "noten", "dj", "sound")) return ParticleTypes.NOTE;
+            if (has(id, "dragon", "drache", "drach")) return ParticleTypes.DRAGON_BREATH;
+            if (has(id, "soul", "seelen", "hades", "sculk", "warden")) return ParticleTypes.SOUL_FIRE_FLAME;
+            if (has(id, "bubble", "blase", "wasser", "poseidon", "tsunami")) return ParticleTypes.SPLASH;
+            if (has(id, "totem", "glueh", "glow")) return ParticleTypes.TOTEM_OF_UNDYING;
+            if (has(id, "creeper", "happy")) return ParticleTypes.HAPPY_VILLAGER;
+            if (has(id, "cloud", "luft", "wind", "tornado")) return ParticleTypes.CLOUD;
+            if (has(id, "crimson", "nether", "herbst", "pilz")) return ParticleTypes.CRIMSON_SPORE;
+            if (has(id, "star", "stern", "sonnen", "sun", "licht", "sommer", "odin")) return ParticleTypes.END_ROD;
+            if (has(id, "crit", "pixel", "diamant", "diamond", "redstone")) return ParticleTypes.CRIT;
+            if (has(id, "flower", "blumen")) return ParticleTypes.CHERRY_LEAVES;
+        } catch (Exception e) { /* fallback below */ }
 
         // Category fallbacks
-        return switch (category) {
-            case "trail" -> ParticleTypes.END_ROD;
-            case "aura" -> ParticleTypes.ENCHANT;
-            case "particle" -> ParticleTypes.END_ROD;
-            case "wings" -> ParticleTypes.END_ROD;
-            case "cape" -> ParticleTypes.ENCHANT;
-            case "hat" -> ParticleTypes.END_ROD;
-            case "pet" -> ParticleTypes.HAPPY_VILLAGER;
-            case "emote" -> ParticleTypes.TOTEM_OF_UNDYING;
-            case "banner" -> ParticleTypes.FLAME;
-            case "mask" -> ParticleTypes.SMOKE;
-            case "mount" -> ParticleTypes.CLOUD;
-            case "acc" -> ParticleTypes.CRIT;
-            default -> ParticleTypes.END_ROD;
-        };
+        if ("aura".equals(category) || "cape".equals(category)) return ParticleTypes.ENCHANT;
+        if ("pet".equals(category)) return ParticleTypes.HAPPY_VILLAGER;
+        if ("emote".equals(category)) return ParticleTypes.TOTEM_OF_UNDYING;
+        if ("banner".equals(category)) return ParticleTypes.FLAME;
+        if ("mask".equals(category)) return ParticleTypes.SMOKE;
+        if ("mount".equals(category)) return ParticleTypes.CLOUD;
+        if ("acc".equals(category)) return ParticleTypes.CRIT;
+        return ParticleTypes.END_ROD;
+    }
+
+    private boolean has(String id, String... keywords) {
+        for (String k : keywords) if (id.contains(k)) return true;
+        return false;
     }
 }

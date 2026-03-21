@@ -1,6 +1,6 @@
 {
   "name": "chibi-launcher",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Chibi.art Minecraft Launcher",
   "main": "main.js",
   "scripts": {
