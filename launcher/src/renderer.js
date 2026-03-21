@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const version = document.getElementById('inst-version').value;
     const loader = document.getElementById('inst-loader').value;
     if (!name) return toast('Name eingeben!');
+    if (loader === 'forge') return toast('Forge wird noch nicht unterstuetzt. Bitte Fabric oder Vanilla waehlen.');
     const r = await window.api.createInstance(name, version, loader);
     if (r.success) { toast('Instanz "'+name+'" erstellt!'); document.getElementById('modal-new-instance').classList.add('hidden'); document.getElementById('inst-name').value=''; renderInstances(); }
     else toast('Fehler: '+r.error);
@@ -116,7 +117,7 @@ async function renderInstances() {
       <div class="inst-name">${esc(i.name)}</div>
       <div class="inst-meta">
         <span class="pill">${i.version}</span>
-        <span class="pill">${i.loader}</span>
+        <span class="pill${i.loader==='fabric'?' pill-fabric':i.loader==='forge'?' pill-forge':''}">${i.loader}</span>
       </div>
       <div class="inst-mods">${(i.mods||[]).length} Mods &bull; ${(i.resourcepacks||[]).length} Packs &bull; ${(i.shaders||[]).length} Shaders</div>
       <button class="inst-play-btn" onclick="event.stopPropagation();quickPlay('${i.id}')">&#9654; Spielen</button>
@@ -231,19 +232,37 @@ async function searchBrowse(query) {
 }
 
 window.browseInstall = async function(slug, title) {
-  // Install to selected instance or create new one
   const instances = await window.api.getInstances();
   if (instances.length === 0) { toast('Erstelle zuerst eine Instanz!'); return; }
-  if (instances.length === 1) { await addToFirstInstance(slug, title, instances[0]); return; }
-  // Multiple instances - add to first for now
-  await addToFirstInstance(slug, title, instances[0]);
+  if (instances.length === 1) { await installToInstance(slug, title, instances[0]); return; }
+  // Multiple instances - show picker
+  showInstancePicker(instances, async (inst) => {
+    await installToInstance(slug, title, inst);
+  });
 };
 
-async function addToFirstInstance(slug, title, inst) {
+function showInstancePicker(instances, callback) {
+  let overlay = document.getElementById('instance-picker-overlay');
+  if (overlay) overlay.remove();
+  overlay = document.createElement('div');
+  overlay.id = 'instance-picker-overlay';
+  overlay.className = 'modal';
+  overlay.innerHTML = `<div class="modal-box"><div class="modal-header"><h3>Instanz waehlen</h3><button class="modal-close" id="picker-close">&times;</button></div><div class="modal-body" id="picker-list"></div></div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('picker-close').onclick = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  const list = document.getElementById('picker-list');
+  list.innerHTML = instances.map(i => `<button class="btn btn-primary btn-full" style="margin-bottom:6px" data-pick-id="${i.id}">${esc(i.name)} <span class="dim" style="color:rgba(255,255,255,.6)">(${i.version} ${i.loader})</span></button>`).join('');
+  list.querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => { overlay.remove(); const inst = instances.find(i => i.id === btn.dataset.pickId); if (inst) callback(inst); };
+  });
+}
+
+async function installToInstance(slug, title, inst) {
   toast(title+' wird zu "'+inst.name+'" hinzugefuegt...');
   const r = await window.api.addToInstance(inst.id, slug, browseType);
-  if (r.success) toast('✓ '+title+' in "'+inst.name+'" installiert!');
-  else toast('✗ '+r.error);
+  if (r.success) toast(esc(title)+' in "'+esc(inst.name)+'" installiert!');
+  else toast('Fehler: '+r.error);
 }
 
 // ── Microsoft Account ──

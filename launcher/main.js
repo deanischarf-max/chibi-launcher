@@ -318,92 +318,132 @@ function httpGet(host, urlPath, token) {
   });
 }
 
-// Find Java - check EVERYWHERE including Minecraft's own bundled Java
+// Find Java - cross-platform detection
 function findJava() {
   const { execSync } = require('child_process');
-  const home = process.env.APPDATA || '';
+  const isWin = process.platform === 'win32';
+  const isMac = process.platform === 'darwin';
+  const javaExe = isWin ? 'javaw.exe' : 'java';
+  const javaExeFallback = isWin ? 'java.exe' : 'java';
+  const home = process.env.APPDATA || process.env.HOME || '';
   const local = process.env.LOCALAPPDATA || '';
 
   const paths = [
     // Our own bundled Java
-    path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', 'javaw.exe'),
-    path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', 'java.exe'),
+    path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', javaExe),
+    path.join(app.getPath('appData'), '.chibi-minecraft', 'java', 'bin', javaExeFallback),
+  ];
+
+  if (isWin) {
     // Minecraft launcher's bundled Java (official launcher)
-    path.join(home, '.minecraft', 'runtime', 'java-runtime-delta', 'windows-x64', 'java-runtime-delta', 'bin', 'javaw.exe'),
-    path.join(home, '.minecraft', 'runtime', 'java-runtime-gamma', 'windows-x64', 'java-runtime-gamma', 'bin', 'javaw.exe'),
-    path.join(home, '.minecraft', 'runtime', 'java-runtime-beta', 'windows-x64', 'java-runtime-beta', 'bin', 'javaw.exe'),
-    path.join(home, '.minecraft', 'runtime', 'java-runtime-alpha', 'windows-x64', 'java-runtime-alpha', 'bin', 'javaw.exe'),
+    for (const rt of ['java-runtime-delta', 'java-runtime-gamma', 'java-runtime-beta', 'java-runtime-alpha']) {
+      paths.push(path.join(home, '.minecraft', 'runtime', rt, 'windows-x64', rt, 'bin', 'javaw.exe'));
+    }
     // MS Store Minecraft launcher Java
-    ...(() => {
-      try {
-        const pkgDir = path.join(local, 'Packages');
-        if (fs.existsSync(pkgDir)) {
-          const msDirs = fs.readdirSync(pkgDir).filter(d => d.startsWith('Microsoft.4297127D64EC6'));
-          for (const d of msDirs) {
-            const runtimeDir = path.join(pkgDir, d, 'LocalCache', 'Local', 'runtime');
-            if (fs.existsSync(runtimeDir)) {
-              const runtimes = fs.readdirSync(runtimeDir);
-              for (const rt of runtimes) {
-                const jp = path.join(runtimeDir, rt, 'windows-x64', rt, 'bin', 'javaw.exe');
-                if (fs.existsSync(jp)) return [jp];
-              }
+    try {
+      const pkgDir = path.join(local, 'Packages');
+      if (fs.existsSync(pkgDir)) {
+        const msDirs = fs.readdirSync(pkgDir).filter(d => d.startsWith('Microsoft.4297127D64EC6'));
+        for (const d of msDirs) {
+          const runtimeDir = path.join(pkgDir, d, 'LocalCache', 'Local', 'runtime');
+          if (fs.existsSync(runtimeDir)) {
+            for (const rt of fs.readdirSync(runtimeDir)) {
+              paths.push(path.join(runtimeDir, rt, 'windows-x64', rt, 'bin', 'javaw.exe'));
             }
           }
         }
+      }
+    } catch(e) {}
+    // Standard Windows Java installations
+    paths.push(
+      path.join(process.env.JAVA_HOME || '', 'bin', 'javaw.exe'),
+      'C:\\Program Files\\Java\\jdk-21\\bin\\javaw.exe',
+      'C:\\Program Files\\Eclipse Adoptium\\jdk-21\\bin\\javaw.exe',
+      'C:\\Program Files\\Eclipse Adoptium\\jre-21\\bin\\javaw.exe',
+      'C:\\Program Files\\Microsoft\\jdk-21\\bin\\javaw.exe',
+      'C:\\Program Files\\Zulu\\zulu-21\\bin\\javaw.exe',
+      'C:\\Program Files\\Java\\jre-21\\bin\\javaw.exe',
+      'C:\\Program Files\\Java\\jdk-17\\bin\\javaw.exe',
+      'C:\\Program Files\\Eclipse Adoptium\\jdk-17\\bin\\javaw.exe',
+    );
+  } else {
+    // Linux & macOS
+    paths.push(path.join(process.env.JAVA_HOME || '', 'bin', 'java'));
+    if (isMac) {
+      paths.push(
+        '/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin/java',
+        '/Library/Java/JavaVirtualMachines/zulu-21.jdk/Contents/Home/bin/java',
+        '/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home/bin/java',
+        '/usr/local/opt/openjdk@21/bin/java',
+        '/opt/homebrew/opt/openjdk@21/bin/java',
+      );
+    } else {
+      // Linux
+      paths.push(
+        '/usr/lib/jvm/java-21-openjdk-amd64/bin/java',
+        '/usr/lib/jvm/java-21-openjdk/bin/java',
+        '/usr/lib/jvm/temurin-21-jdk-amd64/bin/java',
+        '/usr/lib/jvm/java-21/bin/java',
+        '/usr/lib/jvm/java-17-openjdk-amd64/bin/java',
+        '/usr/lib/jvm/java-17-openjdk/bin/java',
+        '/usr/bin/java',
+      );
+      // Minecraft launcher Java on Linux
+      const mcDir = path.join(home, '.minecraft', 'runtime');
+      try {
+        if (fs.existsSync(mcDir)) {
+          for (const rt of fs.readdirSync(mcDir)) {
+            paths.push(path.join(mcDir, rt, 'linux', rt, 'bin', 'java'));
+          }
+        }
       } catch(e) {}
-      return [];
-    })(),
-    // Standard Java installations
-    path.join(process.env.JAVA_HOME || '', 'bin', 'javaw.exe'),
-    'C:\\Program Files\\Java\\jdk-21\\bin\\javaw.exe',
-    'C:\\Program Files\\Eclipse Adoptium\\jdk-21\\bin\\javaw.exe',
-    'C:\\Program Files\\Eclipse Adoptium\\jre-21\\bin\\javaw.exe',
-    'C:\\Program Files\\Microsoft\\jdk-21\\bin\\javaw.exe',
-    'C:\\Program Files\\Zulu\\zulu-21\\bin\\javaw.exe',
-    'C:\\Program Files\\Java\\jre-21\\bin\\javaw.exe',
-    'C:\\Program Files\\Java\\jdk-17\\bin\\javaw.exe',
-    'C:\\Program Files\\Eclipse Adoptium\\jdk-17\\bin\\javaw.exe',
-  ];
+    }
+  }
 
   for (const p of paths) {
     try { if (p && fs.existsSync(p)) return p; } catch(e) {}
   }
 
   // Last resort: check PATH
-  try {
-    const result = execSync('where javaw', { stdio: 'pipe', timeout: 5000 }).toString().trim().split('\n')[0].trim();
-    if (result && fs.existsSync(result)) return result;
-  } catch(e) {}
-  try {
-    const result = execSync('where java', { stdio: 'pipe', timeout: 5000 }).toString().trim().split('\n')[0].trim();
-    if (result && fs.existsSync(result)) return result;
-  } catch(e) {}
+  const whichCmd = isWin ? 'where' : 'which';
+  if (isWin) {
+    try { const r = execSync('where javaw', { stdio: 'pipe', timeout: 5000 }).toString().trim().split('\n')[0].trim(); if (r && fs.existsSync(r)) return r; } catch(e) {}
+  }
+  try { const r = execSync(`${whichCmd} java`, { stdio: 'pipe', timeout: 5000 }).toString().trim().split('\n')[0].trim(); if (r && fs.existsSync(r)) return r; } catch(e) {}
 
   return null;
 }
 
-// Download Java automatically
+// Download Java automatically (cross-platform)
 async function downloadJava() {
   const https = require('https');
+  const { execSync } = require('child_process');
+  const isWin = process.platform === 'win32';
+  const isMac = process.platform === 'darwin';
   const javaDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'java');
-  const javawPath = path.join(javaDir, 'bin', 'javaw.exe');
+  const javaExe = isWin ? 'javaw.exe' : 'java';
+  const javaBinPath = path.join(javaDir, 'bin', javaExe);
 
-  if (fs.existsSync(javawPath)) return javawPath;
+  if (fs.existsSync(javaBinPath)) return javaBinPath;
 
-  // Download Adoptium JRE 21 for Windows
-  const url = 'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse';
+  // Detect OS and arch for Adoptium API
+  const osName = isWin ? 'windows' : isMac ? 'mac' : 'linux';
+  const archName = process.arch === 'arm64' ? 'aarch64' : 'x64';
+  const url = `https://api.adoptium.net/v3/binary/latest/21/ga/${osName}/${archName}/jre/hotspot/normal/eclipse`;
+  const archiveExt = isWin ? '.zip' : '.tar.gz';
 
   return new Promise((resolve, reject) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('launch-progress', { type: 'Java wird heruntergeladen...', task: 0, total: 100 });
     }
 
-    const zipPath = path.join(app.getPath('temp'), 'java21.zip');
-    const file = fs.createWriteStream(zipPath);
+    const archivePath = path.join(app.getPath('temp'), 'java21' + archiveExt);
+    const file = fs.createWriteStream(archivePath);
 
     const doRequest = (requestUrl) => {
-      https.get(requestUrl, { headers: { 'User-Agent': 'ChibiLauncher/1.0' } }, (res) => {
+      https.get(requestUrl, { headers: { 'User-Agent': 'ChibiLauncher/1.1' } }, (res) => {
         if (res.statusCode === 302 || res.statusCode === 301) {
+          res.resume();
           doRequest(res.headers.location);
           return;
         }
@@ -418,63 +458,95 @@ async function downloadJava() {
         });
         res.on('end', () => {
           file.end();
-          // Extract ZIP
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('launch-progress', { type: 'Java wird entpackt...', task: 90, total: 100 });
           }
           try {
-            const { execSync } = require('child_process');
             fs.mkdirSync(javaDir, { recursive: true });
-            // Try tar first (Windows 10+), fallback to PowerShell
-            try {
-              execSync(`tar -xf "${zipPath}" -C "${javaDir}"`, { timeout: 120000, stdio: 'pipe' });
-            } catch(tarErr) {
-              try {
-                execSync(`powershell -NoProfile -Command "Expand-Archive -Force -Path '${zipPath}' -DestinationPath '${javaDir}'"`, { timeout: 120000, stdio: 'pipe' });
-              } catch(psErr) {
-                reject(new Error('Entpacken fehlgeschlagen. Bitte installiere Java 21 manuell: https://adoptium.net'));
-                return;
+            if (isWin) {
+              try { execSync(`tar -xf "${archivePath}" -C "${javaDir}"`, { timeout: 120000, stdio: 'pipe' }); }
+              catch(tarErr) {
+                try { execSync(`powershell -NoProfile -Command "Expand-Archive -Force -Path '${archivePath}' -DestinationPath '${javaDir}'"`, { timeout: 120000, stdio: 'pipe' }); }
+                catch(psErr) { reject(new Error('Entpacken fehlgeschlagen. Bitte installiere Java 21 manuell: https://adoptium.net')); return; }
               }
+            } else {
+              execSync(`tar -xzf "${archivePath}" -C "${javaDir}"`, { timeout: 120000, stdio: 'pipe' });
             }
-            // Find extracted subfolder and move contents up
+            // Move extracted subfolder contents up
             const dirs = fs.readdirSync(javaDir).filter(d => {
               try { return fs.statSync(path.join(javaDir, d)).isDirectory() && d.startsWith('jdk'); } catch(e) { return false; }
             });
             if (dirs.length > 0) {
               const extractedDir = path.join(javaDir, dirs[0]);
-              const items = fs.readdirSync(extractedDir);
-              for (const item of items) {
-                const src = path.join(extractedDir, item);
+              // On macOS, JDK is inside Contents/Home
+              const homeDir = isMac && fs.existsSync(path.join(extractedDir, 'Contents', 'Home'))
+                ? path.join(extractedDir, 'Contents', 'Home') : extractedDir;
+              for (const item of fs.readdirSync(homeDir)) {
+                const src = path.join(homeDir, item);
                 const dst = path.join(javaDir, item);
                 try { fs.renameSync(src, dst); } catch(e) {
-                  // If rename fails (cross-device), copy
-                  execSync(process.platform === 'win32' ? `xcopy /E /I /Y "${src}" "${dst}"` : `cp -r "${src}" "${dst}"`, { stdio: 'pipe' });
+                  execSync(`cp -r "${src}" "${dst}"`, { stdio: 'pipe' });
                 }
               }
               try { fs.rmSync(extractedDir, { recursive: true }); } catch(e) {}
             }
-            try { fs.unlinkSync(zipPath); } catch(e) {}
-            // Find java executable
-            if (fs.existsSync(javawPath)) resolve(javawPath);
-            else {
-              const javaExe = path.join(javaDir, 'bin', 'java.exe');
-              if (fs.existsSync(javaExe)) resolve(javaExe);
-              else {
-                // List what we got for debugging
-                let contents = '';
-                try { contents = fs.readdirSync(javaDir).join(', '); } catch(e) {}
-                reject(new Error('Java bin nicht gefunden. Ordnerinhalt: ' + contents));
-              }
+            try { fs.unlinkSync(archivePath); } catch(e) {}
+            // Make java executable on Unix
+            if (!isWin) {
+              try { execSync(`chmod +x "${path.join(javaDir, 'bin', 'java')}"`, { stdio: 'pipe' }); } catch(e) {}
             }
-          } catch(e) {
-            reject(new Error('Java entpacken fehlgeschlagen: ' + e.message));
-          }
+            // Find java executable
+            const candidates = [javaBinPath, path.join(javaDir, 'bin', isWin ? 'java.exe' : 'java')];
+            for (const c of candidates) { if (fs.existsSync(c)) { resolve(c); return; } }
+            let contents = ''; try { contents = fs.readdirSync(javaDir).join(', '); } catch(e) {}
+            reject(new Error('Java bin nicht gefunden. Ordnerinhalt: ' + contents));
+          } catch(e) { reject(new Error('Java entpacken fehlgeschlagen: ' + e.message)); }
         });
         res.on('error', reject);
       }).on('error', reject);
     };
     doRequest(url);
   });
+}
+
+// ── Fabric Loader Installation ──
+function fabricGet(urlPath) {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    https.get('https://meta.fabricmc.net/v2' + urlPath, { headers: { 'User-Agent': 'ChibiLauncher/1.1' } }, res => {
+      let d = ''; res.on('data', c => d += c);
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
+    }).on('error', reject);
+  });
+}
+
+async function installFabricLoader(mcRoot, gameVersion) {
+  try {
+    // Get available Fabric loader versions for this game version
+    const loaders = await fabricGet(`/versions/loader/${gameVersion}`);
+    if (!loaders || loaders.length === 0) return null;
+
+    const loaderVersion = loaders[0].loader.version;
+    const versionId = `fabric-loader-${loaderVersion}-${gameVersion}`;
+    const versionDir = path.join(mcRoot, 'versions', versionId);
+    const versionJson = path.join(versionDir, versionId + '.json');
+
+    // Already installed?
+    if (fs.existsSync(versionJson)) return versionId;
+
+    // Download the full version profile JSON
+    const profile = await fabricGet(`/versions/loader/${gameVersion}/${loaderVersion}/profile/json`);
+    if (!profile) return null;
+
+    fs.mkdirSync(versionDir, { recursive: true });
+    fs.writeFileSync(versionJson, JSON.stringify(profile, null, 2));
+
+    console.log('[Fabric] Installed loader', versionId);
+    return versionId;
+  } catch(e) {
+    console.error('[Fabric] Install error:', e);
+    return null;
+  }
 }
 
 // ── Instanzen ──
@@ -572,7 +644,6 @@ ipcMain.handle('launch-instance', async (ev, instId) => {
   return await doLaunchGame(p, version, instId);
 });
 
-// Keep old handler for compatibility
 async function doLaunchGame(p, mcVersion, instId) {
   try {
     // Find Java
@@ -587,7 +658,8 @@ async function doLaunchGame(p, mcVersion, instId) {
       try {
         javaPath = await downloadJava();
       } catch(e) {
-        return { success: false, error: 'Java nicht gefunden!\n\nBitte installiere Java 21:\nhttps://adoptium.net/de/temurin/releases/?os=windows&arch=x64&package=jre&version=21\n\nOder installiere den offiziellen Minecraft Launcher (der bringt Java mit).\n\nDanach Launcher neu starten.' };
+        const osHint = process.platform === 'win32' ? 'os=windows' : process.platform === 'darwin' ? 'os=mac' : 'os=linux';
+        return { success: false, error: `Java nicht gefunden!\n\nBitte installiere Java 21:\nhttps://adoptium.net/de/temurin/releases/?${osHint}&arch=x64&package=jre&version=21\n\nOder installiere den offiziellen Minecraft Launcher (der bringt Java mit).\n\nDanach Launcher neu starten.` };
       }
     }
 
@@ -641,11 +713,30 @@ async function doLaunchGame(p, mcVersion, instId) {
       auth = Authenticator.getAuth(p.name);
     }
 
+    // Install Fabric loader if needed
+    let versionConfig = { number: mcVersion, type: 'release' };
+    if (instId) {
+      const instances = store.get('instances', []);
+      const currentInst = instances.find(i => i.id === instId);
+      if (currentInst && currentInst.loader === 'fabric') {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('launch-progress', { type: 'Fabric Loader wird installiert...', task: 0, total: 100 });
+        }
+        const fabricVersionId = await installFabricLoader(mcRoot, mcVersion);
+        if (fabricVersionId) {
+          versionConfig = { number: mcVersion, type: 'release', custom: fabricVersionId };
+          console.log('[Launch] Using Fabric version:', fabricVersionId);
+        } else {
+          console.warn('[Launch] Fabric installation fehlgeschlagen, starte Vanilla');
+        }
+      }
+    }
+
     const opts = {
       authorization: auth,
       root: mcRoot,
       javaPath: javaPath,
-      version: { number: mcVersion, type: 'release' },
+      version: versionConfig,
       memory: { max: store.get('settings.ram', '4') + 'G', min: '2G' },
       javaArgs: [
         '-XX:+UseG1GC',
@@ -693,12 +784,6 @@ async function doLaunchGame(p, mcVersion, instId) {
     return { success: true };
   } catch(e) { return { success: false, error: e.message || 'Start fehlgeschlagen' }; }
 }
-
-ipcMain.handle('launch-game', async (ev, version) => {
-  const p = store.get('currentUser');
-  if (!p) return { success: false, error: 'Nicht eingeloggt' };
-  return await doLaunchGame(p, version || '1.21.1', null);
-});
 
 // Cosmetics
 ipcMain.handle('get-cosmetics', () => COSMETICS_CATALOG);
@@ -757,135 +842,6 @@ ipcMain.handle('search-modrinth', async (ev, type, query) => {
       categories: h.categories || [],
     }));
   } catch(e) { console.error('Modrinth search error:', e); return []; }
-});
-
-ipcMain.handle('install-modrinth', async (ev, slug, type) => {
-  try {
-    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
-    const gameVersion = store.get('settings.gameVersion', '1.21.1');
-
-    // Get project versions filtered by game version
-    let versions;
-    try {
-      versions = await modrinthGet(`/project/${slug}/version?game_versions=["${gameVersion}"]`);
-    } catch(e) {
-      versions = null;
-    }
-    // Fallback: if no version matched the filter, get all versions
-    if (!versions || versions.length === 0) {
-      versions = await modrinthGet(`/project/${slug}/version`);
-    }
-    if (!versions || versions.length === 0) return { success: false, error: 'Keine Version gefunden' };
-
-    // Pick the latest version, preferring primary files
-    const latest = versions[0];
-    const file = (latest.files && latest.files.find(f => f.primary)) || (latest.files && latest.files[0]);
-    if (!file) return { success: false, error: 'Keine Datei gefunden' };
-
-    // Determine install dir
-    let dir;
-    if (type === 'mod') dir = path.join(mcRoot, 'mods');
-    else if (type === 'resourcepack') dir = path.join(mcRoot, 'resourcepacks');
-    else if (type === 'shader') dir = path.join(mcRoot, 'shaderpacks');
-    else dir = path.join(mcRoot, 'mods');
-
-    fs.mkdirSync(dir, { recursive: true });
-    const filePath = path.join(dir, file.filename);
-
-    // Download
-    await downloadFile(file.url, filePath);
-
-    // Track installed
-    const installed = store.get('installed_mods', []);
-    if (!installed.find(m => m.file === file.filename)) {
-      installed.push({ name: slug, file: file.filename, type, dir });
-      store.set('installed_mods', installed);
-    }
-    return { success: true };
-  } catch(e) { return { success: false, error: e.message }; }
-});
-
-ipcMain.handle('install-chibi-mod', async (ev, slug, name, url) => {
-  try {
-    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
-    const dir = path.join(mcRoot, 'mods');
-    fs.mkdirSync(dir, { recursive: true });
-    const filename = url.split('/').pop();
-    const filePath = path.join(dir, filename);
-    await downloadFile(url, filePath);
-    const installed = store.get('installed_mods', []);
-    if (!installed.find(m => m.file === filename)) {
-      installed.push({ name, file: filename, type: 'mod', dir });
-      store.set('installed_mods', installed);
-    }
-    return { success: true };
-  } catch(e) { return { success: false, error: e.message }; }
-});
-
-ipcMain.handle('install-modpack', async (ev, slug) => {
-  try {
-    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
-    // Get modpack info
-    const versions = await modrinthGet(`/project/${slug}/version`);
-    if (!versions || versions.length === 0) return { success: false, error: 'Keine Version gefunden' };
-    const latest = versions[0];
-
-    // Get dependencies (mods in the modpack)
-    const deps = latest.dependencies || [];
-    let installed = 0;
-
-    // Install each dependency
-    for (const dep of deps) {
-      if (dep.project_id && dep.dependency_type === 'required') {
-        try {
-          const depVersions = await modrinthGet(`/project/${dep.project_id}/version`);
-          if (depVersions && depVersions.length > 0) {
-            const depFile = (depVersions[0].files.find(f => f.primary)) || depVersions[0].files[0];
-            if (depFile) {
-              const dir = path.join(mcRoot, 'mods');
-              fs.mkdirSync(dir, { recursive: true });
-              await downloadFile(depFile.url, path.join(dir, depFile.filename));
-              const mods = store.get('installed_mods', []);
-              if (!mods.find(m => m.file === depFile.filename)) {
-                mods.push({ name: dep.project_id, file: depFile.filename, type: 'mod', dir });
-                store.set('installed_mods', mods);
-              }
-              installed++;
-            }
-          }
-        } catch(e) { console.error('Dep install error:', e); }
-      }
-    }
-
-    // Also download the modpack mrpack file if available
-    const packFile = (latest.files.find(f => f.primary)) || latest.files[0];
-    if (packFile) {
-      const packDir = path.join(mcRoot, 'modpacks');
-      fs.mkdirSync(packDir, { recursive: true });
-      await downloadFile(packFile.url, path.join(packDir, packFile.filename));
-    }
-
-    return { success: true, count: installed };
-  } catch(e) { return { success: false, error: e.message }; }
-});
-
-ipcMain.handle('get-installed-mods', () => store.get('installed_mods', []));
-
-ipcMain.handle('remove-mod', (ev, filename) => {
-  try {
-    const installed = store.get('installed_mods', []);
-    const mod = installed.find(m => m.file === filename);
-    if (mod) {
-      const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
-      let dir;
-      if (mod.type === 'resourcepack') dir = path.join(mcRoot, 'resourcepacks');
-      else if (mod.type === 'shader') dir = path.join(mcRoot, 'shaderpacks');
-      else dir = path.join(mcRoot, 'mods');
-      try { fs.unlinkSync(path.join(dir, filename)); } catch(e) {}
-      store.set('installed_mods', installed.filter(m => m.file !== filename));
-    }
-    return { success: true };
-  } catch(e) { return { success: false, error: e.message }; }
 });
 
 function downloadFile(url, dest) {

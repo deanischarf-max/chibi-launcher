@@ -152,6 +152,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .instance-card .inst-delete{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px}
 .instance-card .inst-delete:hover{color:#ff6b6b}
 .pill{padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;background:var(--bg4);border:1px solid var(--border);color:var(--dim)}
+.pill-fabric{background:rgba(27,217,106,.12);border-color:rgba(27,217,106,.3);color:var(--green)}
+.pill-forge{background:rgba(233,69,96,.12);border-color:rgba(233,69,96,.3);color:var(--accent)}
 
 /* Modal */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:500;display:flex;align-items:center;justify-content:center}
