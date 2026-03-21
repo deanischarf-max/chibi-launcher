@@ -500,7 +500,16 @@ app.whenReady().then(() => {
     return true;
   });
 
-  setTimeout(() => { try { autoUpdater.checkForUpdates(); } catch(e) {} }, 3000);
+  // Check for updates as soon as possible
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[Update] Window loaded, checking for updates...');
+    try { autoUpdater.checkForUpdates(); } catch(e) { console.error('[Update] Check failed:', e); }
+  });
+  // Retry after 15 seconds in case first check was too early
+  setTimeout(() => {
+    console.log('[Update] Retry check...');
+    try { autoUpdater.checkForUpdates(); } catch(e) {}
+  }, 15000);
 });
 app.on('window-all-closed', () => app.quit());
 
