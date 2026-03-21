@@ -1211,7 +1211,6 @@ ipcMain.handle('launch-instance', async (ev, instId) => {
 });
 
 async function doLaunchGame(p, mcVersion, instId) {
-  const { spawn } = require('child_process');
   try {
     // Find Java
     const customJava = store.get('settings.javaPath', '');
@@ -1219,16 +1218,15 @@ async function doLaunchGame(p, mcVersion, instId) {
     if (!javaPath) {
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Java wird heruntergeladen...', task: 0, total: 100 });
       try { javaPath = await downloadJava(); } catch(e) {
-        const osHint = process.platform === 'win32' ? 'os=windows' : process.platform === 'darwin' ? 'os=mac' : 'os=linux';
-        return { success: false, error: `Java nicht gefunden!\nhttps://adoptium.net/de/temurin/releases/?${osHint}&arch=x64&package=jre&version=21` };
+        return { success: false, error: 'Java nicht gefunden! Bitte installiere Java 21.' };
       }
     }
 
-    // Cosmetics mod deaktiviert bis API-Kompatibilitaet gefixt ist
-    // if (instId) { await ensureCosmeticsMod(instId); }
+    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
+    const { Client, Authenticator } = require('minecraft-launcher-core');
+    const launcher = new Client();
 
     // Copy instance mods/resourcepacks/shaders into MC game directory
-    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
     if (instId) {
       const instDir = path.join(mcRoot, 'instances', instId);
       for (const sub of ['mods', 'resourcepacks', 'shaderpacks']) {
@@ -1246,12 +1244,10 @@ async function doLaunchGame(p, mcVersion, instId) {
 
     // Auth
     const mcAccount = store.get('mcAccount');
-    let authName, authUuid, authToken;
-    if (mcAccount && mcAccount.accessToken) {
-      authName = mcAccount.name; authUuid = mcAccount.uuid; authToken = mcAccount.accessToken;
-    } else {
-      authName = p.name; authUuid = '00000000-0000-0000-0000-000000000000'; authToken = '0';
-    }
+    const auth = mcAccount && mcAccount.accessToken ? {
+      access_token: mcAccount.accessToken, client_token: mcAccount.uuid,
+      uuid: mcAccount.uuid, name: mcAccount.name, user_properties: '{}'
+    } : Authenticator.getAuth(p.name);
 
     // Check if Fabric needed
     let useFabric = false;
@@ -1259,7 +1255,7 @@ async function doLaunchGame(p, mcVersion, instId) {
       const instances = store.get('instances', []);
       const currentInst = instances.find(i => i.id === instId);
       if (currentInst) {
-        const hasMods = (currentInst.mods || []).length > 0;
+        const hasMods = (currentInst.mods || []).filter(m => !m.system).length > 0;
         if (currentInst.loader === 'fabric' || hasMods) {
           useFabric = true;
           if (currentInst.loader === 'vanilla' && hasMods) { currentInst.loader = 'fabric'; store.set('instances', instances); }
@@ -1267,263 +1263,46 @@ async function doLaunchGame(p, mcVersion, instId) {
       }
     }
 
-    // Step 1: Download vanilla MC directly from Mojang (NO MCLC - it launches the game!)
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Minecraft wird heruntergeladen...', task: 0, total: 100 });
-
-    const vanillaJsonPath = path.join(mcRoot, 'versions', mcVersion, mcVersion + '.json');
-    const clientJar = path.join(mcRoot, 'versions', mcVersion, mcVersion + '.jar');
-
-    // Download vanilla version JSON + client JAR from Mojang if not cached
-    if (!fs.existsSync(vanillaJsonPath) || !fs.existsSync(clientJar)) {
-      await downloadVanillaMC(mcRoot, mcVersion);
-    }
-
-    if (!fs.existsSync(vanillaJsonPath)) {
-      return { success: false, error: 'Version ' + mcVersion + ' nicht gefunden. Existiert diese MC-Version?' };
-    }
-
-    const vanillaJson = JSON.parse(fs.readFileSync(vanillaJsonPath, 'utf8'));
-
-    // Download libraries
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Libraries werden heruntergeladen...', task: 20, total: 100 });
-    const libDir = path.join(mcRoot, 'libraries');
-    for (const lib of (vanillaJson.libraries || [])) {
-      if (!lib.downloads || !lib.downloads.artifact) continue;
-      const artPath = path.join(libDir, lib.downloads.artifact.path);
-      if (fs.existsSync(artPath)) continue;
-      fs.mkdirSync(path.dirname(artPath), { recursive: true });
-      try { await downloadFile(lib.downloads.artifact.url, artPath); } catch(e) { console.warn('[DL] Library failed:', lib.name); }
-    }
-
-    // Download assets
-    if (vanillaJson.assetIndex && vanillaJson.assetIndex.url) {
-      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Assets werden heruntergeladen...', task: 35, total: 100 });
-      const assetIndexDir = path.join(mcRoot, 'assets', 'indexes');
-      const assetIndexFile = path.join(assetIndexDir, vanillaJson.assetIndex.id + '.json');
-      if (!fs.existsSync(assetIndexFile)) {
-        fs.mkdirSync(assetIndexDir, { recursive: true });
-        await downloadFile(vanillaJson.assetIndex.url, assetIndexFile);
+    // Install Fabric if needed
+    let versionConfig = { number: mcVersion, type: 'release' };
+    if (useFabric) {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Fabric wird installiert...', task: 0, total: 100 });
+      const fabricVersionId = await installFabricLoader(mcRoot, mcVersion, javaPath);
+      if (fabricVersionId) {
+        versionConfig = { number: mcVersion, type: 'release', custom: fabricVersionId };
+        console.log('[Launch] Using Fabric:', fabricVersionId);
       }
-      // Download individual assets (only missing ones)
-      try {
-        const assetIndex = JSON.parse(fs.readFileSync(assetIndexFile, 'utf8'));
-        const objectsDir = path.join(mcRoot, 'assets', 'objects');
-        const entries = Object.values(assetIndex.objects || {});
-        let done = 0;
-        for (const obj of entries) {
-          const hash = obj.hash;
-          const prefix = hash.substring(0, 2);
-          const assetPath = path.join(objectsDir, prefix, hash);
-          if (!fs.existsSync(assetPath)) {
-            fs.mkdirSync(path.join(objectsDir, prefix), { recursive: true });
-            try { await downloadFile(`https://resources.download.minecraft.com/${prefix}/${hash}`, assetPath); } catch(e) {}
-          }
-          done++;
-          if (done % 100 === 0 && mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('launch-progress', { type: 'Assets', task: done, total: entries.length });
-          }
-        }
-      } catch(e) { console.warn('[DL] Asset download error:', e.message); }
     }
 
-    // Download natives
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Natives werden heruntergeladen...', task: 45, total: 100 });
-    const nativesDir = path.join(mcRoot, 'versions', mcVersion, 'natives');
-    fs.mkdirSync(nativesDir, { recursive: true });
-    const osName = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'osx' : 'linux';
-    for (const lib of (vanillaJson.libraries || [])) {
-      if (!lib.downloads || !lib.downloads.classifiers) continue;
-      const nativeKey = lib.natives && lib.natives[osName];
-      if (!nativeKey) continue;
-      const classifier = lib.downloads.classifiers[nativeKey];
-      if (!classifier) continue;
-      const nativePath = path.join(libDir, classifier.path);
-      if (!fs.existsSync(nativePath)) {
-        fs.mkdirSync(path.dirname(nativePath), { recursive: true });
-        try { await downloadFile(classifier.url, nativePath); } catch(e) {}
-      }
-      // Extract native JAR to natives dir
-      try {
-        const { execSync } = require('child_process');
-        execSync(`"${findJavaExe(javaPath) || javaPath}" -jar -Djava.io.tmpdir="${nativesDir}" -cp "${nativePath}" 2>/dev/null || true`, { stdio: 'pipe', timeout: 10000 });
-        // Simple extraction via jar command or unzip
-        if (process.platform === 'win32') {
-          execSync(`tar -xf "${nativePath}" -C "${nativesDir}" --exclude="META-INF" 2>nul`, { stdio: 'pipe', timeout: 10000 });
-        } else {
-          execSync(`unzip -o -q "${nativePath}" -d "${nativesDir}" -x "META-INF/*" 2>/dev/null || true`, { stdio: 'pipe', timeout: 10000 });
-        }
-      } catch(e) { /* natives extraction is best-effort */ }
-    }
+    // Launch with MCLC (handles natives, classpath, assets, everything)
+    const opts = {
+      authorization: auth,
+      root: mcRoot,
+      javaPath: javaPath,
+      version: versionConfig,
+      memory: { max: store.get('settings.ram', '4') + 'G', min: '2G' },
+      javaArgs: ['-XX:+UseG1GC', '-XX:+ParallelRefProcEnabled', '-XX:+UnlockExperimentalVMOptions', '-XX:+DisableExplicitGC', '-XX:+AlwaysPreTouch'],
+      server: { host: 'chibi.art', port: '25565' },
+      overrides: { gameDirectory: mcRoot },
+    };
 
-    // For vanilla (no Fabric), launch directly
-    if (!useFabric) {
-      return launchMinecraft(mcRoot, vanillaJson, null, javaPath, authName, authUuid, authToken, mcVersion, p.name);
-    }
+    let lastLines = [];
+    launcher.on('debug', (e) => { console.log('[MC]', e); lastLines.push(String(e)); if(lastLines.length>80) lastLines.shift(); });
+    launcher.on('data', (e) => { console.log('[MC]', e); lastLines.push(String(e)); if(lastLines.length>80) lastLines.shift(); });
+    launcher.on('error', (e) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-error', String(e)); });
+    launcher.on('progress', (e) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', e); });
+    launcher.on('close', (code) => {
+      if (code !== 0 && mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-error', 'Minecraft beendet (Code ' + code + ')\n\n' + lastLines.slice(-20).join('\n'));
+      awardCoins(p.name);
+    });
 
-    // Step 2: Install Fabric
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Fabric wird installiert...', task: 50, total: 100 });
-    const fabricVersionId = await installFabricLoader(mcRoot, mcVersion, javaPath);
-    if (!fabricVersionId) {
-      return { success: false, error: 'Fabric Loader konnte nicht installiert werden.' };
-    }
-
-    // Step 3: Build classpath from Fabric + Vanilla
-    const fabricJsonPath = path.join(mcRoot, 'versions', fabricVersionId, fabricVersionId + '.json');
-    if (!fs.existsSync(fabricJsonPath)) {
-      return { success: false, error: 'Fabric Version JSON nicht gefunden.' };
-    }
-
-    const fabricJson = JSON.parse(fs.readFileSync(fabricJsonPath, 'utf8'));
-
-    // Download missing Fabric libraries
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Fabric Libraries...', task: 60, total: 100 });
-    for (const lib of (fabricJson.libraries || [])) {
-      if (!lib.name || !lib.url) continue;
-      const jarPath = mavenToPath(lib.name);
-      if (!jarPath || fs.existsSync(jarPath)) continue;
-      const parts = lib.name.split(':');
-      const [group, artifact, version] = parts;
-      const groupPath = group.replace(/\./g, '/');
-      const jarName = `${artifact}-${version}.jar`;
-      fs.mkdirSync(path.dirname(jarPath), { recursive: true });
-      try { await downloadFile(`${lib.url}${groupPath}/${artifact}/${version}/${jarName}`, jarPath); } catch(e) {}
-    }
-
-    return launchMinecraft(mcRoot, vanillaJson, fabricJson, javaPath, authName, authUuid, authToken, mcVersion, p.name);
+    store.set(`session_start_${p.name}`, Date.now());
+    launcher.launch(opts);
+    return { success: true };
   } catch(e) {
     console.error('[Launch] Error:', e);
     return { success: false, error: e.message || 'Start fehlgeschlagen' };
   }
-}
-
-// Download vanilla MC from Mojang (NO game launch!)
-async function downloadVanillaMC(mcRoot, mcVersion) {
-  // Fetch version manifest
-  const manifest = await new Promise((resolve, reject) => {
-    const https = require('https');
-    https.get('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json', { headers: { 'User-Agent': 'ChibiLauncher/1.2' } }, res => {
-      let d = ''; res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
-    }).on('error', reject);
-  });
-
-  const versionEntry = (manifest.versions || []).find(v => v.id === mcVersion);
-  if (!versionEntry) throw new Error('MC Version ' + mcVersion + ' nicht in Mojang Manifest gefunden');
-
-  // Download version JSON
-  const versionDir = path.join(mcRoot, 'versions', mcVersion);
-  const versionJsonPath = path.join(versionDir, mcVersion + '.json');
-  fs.mkdirSync(versionDir, { recursive: true });
-  await downloadFile(versionEntry.url, versionJsonPath);
-
-  // Download client JAR
-  const versionJson = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8'));
-  if (versionJson.downloads && versionJson.downloads.client) {
-    const clientJar = path.join(versionDir, mcVersion + '.jar');
-    if (!fs.existsSync(clientJar)) {
-      await downloadFile(versionJson.downloads.client.url, clientJar);
-    }
-  }
-  console.log('[DL] Vanilla MC', mcVersion, 'downloaded');
-}
-
-// Convert Maven coordinate to local JAR path
-function mavenToPath(name) {
-  const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
-  const parts = name.split(':');
-  if (parts.length < 3) return null;
-  const [group, artifact, version] = parts;
-  return path.join(mcRoot, 'libraries', group.replace(/\./g, '/'), artifact, version, `${artifact}-${version}.jar`);
-}
-
-// Launch Minecraft (vanilla or Fabric) - NO MCLC
-function launchMinecraft(mcRoot, vanillaJson, fabricJson, javaPath, authName, authUuid, authToken, mcVersion, playerName) {
-  const { spawn } = require('child_process');
-  const sep = process.platform === 'win32' ? ';' : ':';
-  const libDir = path.join(mcRoot, 'libraries');
-  const classpathParts = [];
-
-  // Add Fabric libraries first (if Fabric)
-  if (fabricJson) {
-    for (const lib of (fabricJson.libraries || [])) {
-      if (!lib.name) continue;
-      const jarPath = mavenToPath(lib.name);
-      if (jarPath && fs.existsSync(jarPath)) classpathParts.push(jarPath);
-    }
-  }
-
-  // Add vanilla libraries
-  const osName = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'osx' : 'linux';
-  for (const lib of (vanillaJson.libraries || [])) {
-    if (!lib.name) continue;
-    if (lib.rules) {
-      const dominated = lib.rules.some(r => r.action === 'allow' && r.os && r.os.name !== osName);
-      if (dominated) continue;
-    }
-    if (lib.downloads && lib.downloads.artifact && lib.downloads.artifact.path) {
-      const jarPath = path.join(libDir, lib.downloads.artifact.path);
-      if (fs.existsSync(jarPath)) classpathParts.push(jarPath);
-    } else {
-      const jarPath = mavenToPath(lib.name);
-      if (jarPath && fs.existsSync(jarPath)) classpathParts.push(jarPath);
-    }
-  }
-
-  // Add vanilla client JAR
-  const clientJar = path.join(mcRoot, 'versions', mcVersion, mcVersion + '.jar');
-  if (fs.existsSync(clientJar)) classpathParts.push(clientJar);
-
-  const mainClass = fabricJson ? (fabricJson.mainClass || 'net.fabricmc.loader.impl.launch.knot.KnotClient') : (vanillaJson.mainClass || 'net.minecraft.client.main.Main');
-  const versionId = fabricJson ? (fabricJson.id || 'fabric') : mcVersion;
-  const assetIndex = vanillaJson.assetIndex ? vanillaJson.assetIndex.id : mcVersion;
-  const nativesDir = path.join(mcRoot, 'versions', mcVersion, 'natives');
-  const ramMax = store.get('settings.ram', '4') + 'G';
-  const javaExe = findJavaExe(javaPath) || javaPath;
-
-  const args = [
-    `-Xmx${ramMax}`, '-Xms2G',
-    '-XX:+UseG1GC', '-XX:+ParallelRefProcEnabled',
-    '-XX:+UnlockExperimentalVMOptions', '-XX:+DisableExplicitGC', '-XX:+AlwaysPreTouch',
-    `-Djava.library.path=${nativesDir}`,
-    '-Dminecraft.launcher.brand=chibi-launcher',
-    '-Dminecraft.launcher.version=1.2.1',
-    '-cp', classpathParts.join(sep),
-    mainClass,
-    '--username', authName,
-    '--version', versionId,
-    '--gameDir', mcRoot,
-    '--assetsDir', path.join(mcRoot, 'assets'),
-    '--assetIndex', assetIndex,
-    '--uuid', (authUuid || '').replace(/-/g, ''),
-    '--accessToken', authToken || '0',
-    '--userType', 'msa',
-    '--versionType', 'release',
-    '--server', 'chibi.art',
-    '--port', '25565',
-  ];
-
-  console.log('[Launch] Java:', javaExe);
-  console.log('[Launch] MainClass:', mainClass);
-  console.log('[Launch] Classpath:', classpathParts.length, 'entries');
-  console.log('[Launch] Fabric:', !!fabricJson);
-
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-progress', { type: 'Minecraft startet...', task: 95, total: 100 });
-
-  const mcProcess = spawn(javaExe, args, { cwd: mcRoot, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
-  let lastLines = [];
-  mcProcess.stdout.on('data', (d) => { const l = d.toString(); console.log('[MC]', l.trim()); lastLines.push(l); if(lastLines.length>80) lastLines.shift(); });
-  mcProcess.stderr.on('data', (d) => { const l = d.toString(); console.log('[MC ERR]', l.trim()); lastLines.push(l); if(lastLines.length>80) lastLines.shift(); });
-  mcProcess.on('error', (e) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('launch-error', 'Start fehlgeschlagen: ' + e.message); });
-  mcProcess.on('close', (code) => {
-    if (code !== 0 && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('launch-error', 'Minecraft beendet (Code ' + code + ')\n' + lastLines.slice(-25).join('\n'));
-    }
-    awardCoins(playerName);
-  });
-
-  store.set(`session_start_${playerName}`, Date.now());
-  mcProcess.unref();
-  return { success: true };
 }
 
 function awardCoins(playerName) {
