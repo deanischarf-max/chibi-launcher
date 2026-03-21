@@ -509,7 +509,7 @@ async function downloadJava() {
   });
 }
 
-// ── Fabric Loader Installation ──
+// ── Fabric Loader Installation (via official Fabric Installer JAR) ──
 function fabricGet(urlPath) {
   return new Promise((resolve, reject) => {
     const https = require('https');
@@ -520,59 +520,96 @@ function fabricGet(urlPath) {
   });
 }
 
-async function installFabricLoader(mcRoot, gameVersion) {
+// Find java (not javaw) executable for running the Fabric installer
+function findJavaExe(javaPath) {
+  if (!javaPath) return null;
+  // If we have javaw.exe, find java.exe next to it
+  if (javaPath.endsWith('javaw.exe')) {
+    const javaExe = javaPath.replace('javaw.exe', 'java.exe');
+    if (fs.existsSync(javaExe)) return javaExe;
+  }
+  // On Linux/Mac, java is java
+  return javaPath;
+}
+
+async function installFabricLoader(mcRoot, gameVersion, javaPath) {
+  const { execSync } = require('child_process');
+
   try {
-    // Get available Fabric loader versions for this game version
-    const loaders = await fabricGet(`/versions/loader/${gameVersion}`);
-    if (!loaders || loaders.length === 0) {
-      console.error('[Fabric] No loader available for', gameVersion);
-      return null;
-    }
-
-    const loaderVersion = loaders[0].loader.version;
-    const versionId = `fabric-loader-${loaderVersion}-${gameVersion}`;
-    const versionDir = path.join(mcRoot, 'versions', versionId);
-    const versionJson = path.join(versionDir, versionId + '.json');
-
-    // Already installed?
-    if (fs.existsSync(versionJson)) {
-      console.log('[Fabric] Already installed:', versionId);
-      return versionId;
-    }
-
-    // Download the full version profile JSON from Fabric Meta API
-    const profile = await fabricGet(`/versions/loader/${gameVersion}/${loaderVersion}/profile/json`);
-    if (!profile) return null;
-
-    fs.mkdirSync(versionDir, { recursive: true });
-    fs.writeFileSync(versionJson, JSON.stringify(profile, null, 2));
-
-    // Pre-download Fabric libraries so MCLC can find them
-    if (profile.libraries) {
-      const libDir = path.join(mcRoot, 'libraries');
-      for (const lib of profile.libraries) {
-        if (!lib.name || !lib.url) continue;
-        // Maven coordinate: group:artifact:version → group/artifact/version/artifact-version.jar
-        const parts = lib.name.split(':');
-        if (parts.length < 3) continue;
-        const [group, artifact, version] = parts;
-        const groupPath = group.replace(/\./g, '/');
-        const jarName = `${artifact}-${version}.jar`;
-        const libPath = path.join(libDir, groupPath, artifact, version, jarName);
-        if (fs.existsSync(libPath)) continue;
-        const libUrl = `${lib.url}${groupPath}/${artifact}/${version}/${jarName}`;
-        fs.mkdirSync(path.join(libDir, groupPath, artifact, version), { recursive: true });
-        try {
-          await downloadFile(libUrl, libPath);
-          console.log('[Fabric] Downloaded library:', jarName);
-        } catch(e) {
-          console.warn('[Fabric] Failed to download library:', jarName, e.message);
+    // Check if Fabric is already installed for this game version
+    const versionsDir = path.join(mcRoot, 'versions');
+    if (fs.existsSync(versionsDir)) {
+      const existing = fs.readdirSync(versionsDir).filter(d =>
+        d.startsWith('fabric-loader-') && d.endsWith('-' + gameVersion)
+      );
+      if (existing.length > 0) {
+        const versionJson = path.join(versionsDir, existing[0], existing[0] + '.json');
+        if (fs.existsSync(versionJson)) {
+          console.log('[Fabric] Already installed:', existing[0]);
+          return existing[0];
         }
       }
     }
 
-    console.log('[Fabric] Installed loader', versionId);
-    return versionId;
+    // Get latest Fabric installer version
+    const installers = await fabricGet('/versions/installer');
+    if (!installers || installers.length === 0) {
+      console.error('[Fabric] No installer versions found');
+      return null;
+    }
+    const installerVersion = installers[0].version;
+    console.log('[Fabric] Using installer version:', installerVersion);
+
+    // Download the Fabric installer JAR
+    const installerPath = path.join(mcRoot, 'fabric-installer.jar');
+    const installerUrl = `https://maven.fabricmc.net/net/fabricmc/fabric-installer/${installerVersion}/fabric-installer-${installerVersion}.jar`;
+
+    if (!fs.existsSync(installerPath)) {
+      console.log('[Fabric] Downloading installer from:', installerUrl);
+      await downloadFile(installerUrl, installerPath);
+    }
+
+    // Find java executable (not javaw) for running the installer
+    const javaExe = findJavaExe(javaPath);
+    if (!javaExe) {
+      console.error('[Fabric] No java executable found');
+      return null;
+    }
+
+    // Run the official Fabric installer
+    // -noprofile: don't create launcher profile
+    // -mcversion: target MC version
+    // -dir: install directory
+    const cmd = `"${javaExe}" -jar "${installerPath}" client -dir "${mcRoot}" -mcversion ${gameVersion} -noprofile`;
+    console.log('[Fabric] Running installer:', cmd);
+
+    try {
+      const output = execSync(cmd, { timeout: 120000, stdio: 'pipe', encoding: 'utf8' });
+      console.log('[Fabric] Installer output:', output);
+    } catch(installErr) {
+      console.error('[Fabric] Installer failed:', installErr.stderr || installErr.message);
+      // Fallback: try without -noprofile
+      try {
+        execSync(`"${javaExe}" -jar "${installerPath}" client -dir "${mcRoot}" -mcversion ${gameVersion}`, { timeout: 120000, stdio: 'pipe' });
+      } catch(e2) {
+        console.error('[Fabric] Installer fallback also failed:', e2.message);
+        return null;
+      }
+    }
+
+    // Find the installed Fabric version
+    if (fs.existsSync(versionsDir)) {
+      const installed = fs.readdirSync(versionsDir)
+        .filter(d => d.startsWith('fabric-loader-') && d.endsWith('-' + gameVersion))
+        .sort().reverse();
+      if (installed.length > 0) {
+        console.log('[Fabric] Successfully installed:', installed[0]);
+        return installed[0];
+      }
+    }
+
+    console.error('[Fabric] Installation completed but version not found');
+    return null;
   } catch(e) {
     console.error('[Fabric] Install error:', e);
     return null;
@@ -649,6 +686,27 @@ ipcMain.handle('add-to-instance', async (ev, instId, slug, type) => {
     if (type === 'mod' && inst.loader === 'vanilla') {
       inst.loader = 'fabric';
       console.log('[Instance] Auto-upgraded to Fabric (mod added)');
+
+      // Auto-install Fabric API if not already present (most mods need it)
+      const hasFabricApi = (inst.mods || []).some(m =>
+        m.name === 'fabric-api' || m.file.toLowerCase().includes('fabric-api')
+      );
+      if (!hasFabricApi) {
+        try {
+          console.log('[Instance] Auto-installing Fabric API...');
+          let apiVersions = await modrinthGet(`/project/fabric-api/version?game_versions=["${inst.version}"]&loaders=["fabric"]`);
+          if (!apiVersions || apiVersions.length === 0) apiVersions = await modrinthGet(`/project/fabric-api/version?loaders=["fabric"]`);
+          if (apiVersions && apiVersions.length > 0) {
+            const apiFile = (apiVersions[0].files.find(f => f.primary)) || apiVersions[0].files[0];
+            if (apiFile) {
+              const apiDest = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, 'mods', apiFile.filename);
+              await downloadFile(apiFile.url, apiDest);
+              inst.mods.push({ name: 'fabric-api', file: apiFile.filename });
+              console.log('[Instance] Fabric API installed:', apiFile.filename);
+            }
+          }
+        } catch(e) { console.warn('[Instance] Fabric API auto-install failed:', e.message); }
+      }
     }
     store.set('instances', instances);
     return { success: true };
@@ -771,7 +829,7 @@ async function doLaunchGame(p, mcVersion, instId) {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('launch-progress', { type: 'Fabric Loader wird installiert...', task: 0, total: 100 });
       }
-      const fabricVersionId = await installFabricLoader(mcRoot, mcVersion);
+      const fabricVersionId = await installFabricLoader(mcRoot, mcVersion, javaPath);
       if (fabricVersionId) {
         versionConfig = { number: mcVersion, type: 'release', custom: fabricVersionId };
         console.log('[Launch] Using Fabric version:', fabricVersionId);
