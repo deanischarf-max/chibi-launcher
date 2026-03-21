@@ -19,7 +19,7 @@ jobs:
           java-version: 21
       - name: Build Cosmetics Mod
         working-directory: chibi-cosmetics
-        run: chmod +x gradlew && ./gradlew build
+        run: chmod +x gradlew && ./gradlew build --stacktrace 2>&1 || (echo "BUILD FAILED" && cat build/reports/tests/test/*.html 2>/dev/null; exit 1)
       - name: Upload mod JAR
         if: success()
         uses: actions/upload-artifact@v4
