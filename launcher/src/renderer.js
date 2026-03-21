@@ -195,13 +195,13 @@ function renderInstanceContent() {
   // Mods
   const mods = currentInstance.mods || [];
   document.getElementById('inst-mod-list').innerHTML = mods.length === 0 ? '<span class="dim">Keine Mods</span>' :
-    mods.map(m => `<div class="mod-card">
+    mods.map(m => `<div class="mod-card${m.system?' mod-system':''}">
       <img class="mod-icon" src="${m.icon||''}" onerror="this.style.display='none'" alt="">
       <div class="mod-info">
-        <div class="mod-name">${esc(m.title||m.name)}</div>
+        <div class="mod-name">${esc(m.title||m.name)}${m.system?' <span style="color:var(--dim);font-size:10px">&#128274; System</span>':''}</div>
         <div class="mod-file dim">${esc(m.file)}</div>
       </div>
-      <button class="inst-delete" onclick="removeFromInstance('${currentInstance.id}','${esc(m.file)}','mod')">&times;</button>
+      ${m.system?'':'<button class="inst-delete" onclick="removeFromInstance(\''+currentInstance.id+'\',\''+esc(m.file)+'\',\'mod\')">&times;</button>'}
     </div>`).join('');
   // Resource Packs
   const rps = currentInstance.resourcepacks || [];

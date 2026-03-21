@@ -923,7 +923,7 @@ async function ensureCosmeticsMod(instId) {
     if (inst) {
       if (!inst.mods) inst.mods = [];
       if (!inst.mods.some(m => m.file === COSMETICS_MOD_NAME)) {
-        inst.mods.push({ name: 'chibi-cosmetics', file: COSMETICS_MOD_NAME, title: 'Chibi Cosmetics', icon: '' });
+        inst.mods.push({ name: 'chibi-cosmetics', file: COSMETICS_MOD_NAME, title: 'Chibi Cosmetics', icon: '', system: true });
         store.set('instances', instances);
       }
     }
@@ -1186,6 +1186,11 @@ ipcMain.handle('remove-from-instance', (ev, instId, filename, type) => {
   const inst = instances.find(i => i.id === instId);
   if (!inst) return { success: false, error: 'Nicht gefunden' };
   const list = type === 'resourcepack' ? 'resourcepacks' : type === 'shader' ? 'shaders' : 'mods';
+  // Block deletion of system mods
+  if (type === 'mod') {
+    const mod = (inst.mods || []).find(m => m.file === filename);
+    if (mod && mod.system) return { success: false, error: 'System-Mod kann nicht entfernt werden' };
+  }
   const subdir = type === 'resourcepack' ? 'resourcepacks' : type === 'shader' ? 'shaderpacks' : 'mods';
   inst[list] = (inst[list] || []).filter(m => m.file !== filename);
   store.set('instances', instances);

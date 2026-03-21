@@ -182,6 +182,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .mod-info{flex:1;min-width:0}
 .mod-name{font-weight:600;font-size:13px}
 .mod-file{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mod-system{border-color:rgba(27,217,106,.2);background:rgba(27,217,106,.05)}
 
 .mc-account-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
 .mc-account-name{color:var(--green);font-weight:700;font-size:14px}
