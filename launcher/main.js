@@ -524,7 +524,10 @@ async function installFabricLoader(mcRoot, gameVersion) {
   try {
     // Get available Fabric loader versions for this game version
     const loaders = await fabricGet(`/versions/loader/${gameVersion}`);
-    if (!loaders || loaders.length === 0) return null;
+    if (!loaders || loaders.length === 0) {
+      console.error('[Fabric] No loader available for', gameVersion);
+      return null;
+    }
 
     const loaderVersion = loaders[0].loader.version;
     const versionId = `fabric-loader-${loaderVersion}-${gameVersion}`;
@@ -532,14 +535,41 @@ async function installFabricLoader(mcRoot, gameVersion) {
     const versionJson = path.join(versionDir, versionId + '.json');
 
     // Already installed?
-    if (fs.existsSync(versionJson)) return versionId;
+    if (fs.existsSync(versionJson)) {
+      console.log('[Fabric] Already installed:', versionId);
+      return versionId;
+    }
 
-    // Download the full version profile JSON
+    // Download the full version profile JSON from Fabric Meta API
     const profile = await fabricGet(`/versions/loader/${gameVersion}/${loaderVersion}/profile/json`);
     if (!profile) return null;
 
     fs.mkdirSync(versionDir, { recursive: true });
     fs.writeFileSync(versionJson, JSON.stringify(profile, null, 2));
+
+    // Pre-download Fabric libraries so MCLC can find them
+    if (profile.libraries) {
+      const libDir = path.join(mcRoot, 'libraries');
+      for (const lib of profile.libraries) {
+        if (!lib.name || !lib.url) continue;
+        // Maven coordinate: group:artifact:version → group/artifact/version/artifact-version.jar
+        const parts = lib.name.split(':');
+        if (parts.length < 3) continue;
+        const [group, artifact, version] = parts;
+        const groupPath = group.replace(/\./g, '/');
+        const jarName = `${artifact}-${version}.jar`;
+        const libPath = path.join(libDir, groupPath, artifact, version, jarName);
+        if (fs.existsSync(libPath)) continue;
+        const libUrl = `${lib.url}${groupPath}/${artifact}/${version}/${jarName}`;
+        fs.mkdirSync(path.join(libDir, groupPath, artifact, version), { recursive: true });
+        try {
+          await downloadFile(libUrl, libPath);
+          console.log('[Fabric] Downloaded library:', jarName);
+        } catch(e) {
+          console.warn('[Fabric] Failed to download library:', jarName, e.message);
+        }
+      }
+    }
 
     console.log('[Fabric] Installed loader', versionId);
     return versionId;
@@ -614,6 +644,11 @@ ipcMain.handle('add-to-instance', async (ev, instId, slug, type) => {
     if (!inst[list]) inst[list] = [];
     if (!inst[list].find(m => m.file === file.filename)) {
       inst[list].push({ name: slug, file: file.filename });
+    }
+    // Auto-upgrade to Fabric when adding mods to a vanilla instance
+    if (type === 'mod' && inst.loader === 'vanilla') {
+      inst.loader = 'fabric';
+      console.log('[Instance] Auto-upgraded to Fabric (mod added)');
     }
     store.set('instances', instances);
     return { success: true };
@@ -696,8 +731,6 @@ async function doLaunchGame(p, mcVersion, instId) {
       console.log('[Launch] Copied instance files from', instDir, 'to', mcRoot);
     }
 
-    const overrides = {};
-
     // Use Microsoft account if linked, otherwise offline
     const mcAccount = store.get('mcAccount');
     let auth;
@@ -713,21 +746,39 @@ async function doLaunchGame(p, mcVersion, instId) {
       auth = Authenticator.getAuth(p.name);
     }
 
-    // Install Fabric loader if needed
+    // Determine loader - auto-upgrade to Fabric if instance has mods
     let versionConfig = { number: mcVersion, type: 'release' };
+    let useFabric = false;
     if (instId) {
       const instances = store.get('instances', []);
       const currentInst = instances.find(i => i.id === instId);
-      if (currentInst && currentInst.loader === 'fabric') {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('launch-progress', { type: 'Fabric Loader wird installiert...', task: 0, total: 100 });
+      if (currentInst) {
+        const hasMods = (currentInst.mods || []).length > 0;
+        // Use Fabric if selected OR if instance has mods (mods need a loader)
+        if (currentInst.loader === 'fabric' || hasMods) {
+          useFabric = true;
+          // Auto-upgrade instance to fabric if it was vanilla with mods
+          if (currentInst.loader === 'vanilla' && hasMods) {
+            currentInst.loader = 'fabric';
+            store.set('instances', instances);
+            console.log('[Launch] Auto-upgraded instance to Fabric (has mods)');
+          }
         }
-        const fabricVersionId = await installFabricLoader(mcRoot, mcVersion);
-        if (fabricVersionId) {
-          versionConfig = { number: mcVersion, type: 'release', custom: fabricVersionId };
-          console.log('[Launch] Using Fabric version:', fabricVersionId);
-        } else {
-          console.warn('[Launch] Fabric installation fehlgeschlagen, starte Vanilla');
+      }
+    }
+
+    if (useFabric) {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('launch-progress', { type: 'Fabric Loader wird installiert...', task: 0, total: 100 });
+      }
+      const fabricVersionId = await installFabricLoader(mcRoot, mcVersion);
+      if (fabricVersionId) {
+        versionConfig = { number: mcVersion, type: 'release', custom: fabricVersionId };
+        console.log('[Launch] Using Fabric version:', fabricVersionId);
+      } else {
+        console.warn('[Launch] Fabric installation fehlgeschlagen, starte Vanilla');
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('launch-error', 'Fabric Loader konnte nicht installiert werden. Mods werden nicht geladen.');
         }
       }
     }
@@ -746,7 +797,9 @@ async function doLaunchGame(p, mcVersion, instId) {
         '-XX:+AlwaysPreTouch',
       ],
       server: { host: 'chibi.art', port: '25565' },
-      overrides,
+      overrides: {
+        gameDirectory: mcRoot,
+      },
     };
 
     let lastLines = [];

@@ -202,8 +202,17 @@ window.addToInstance = async function(slug, title, type) {
   if (!currentInstance) return toast('Keine Instanz offen');
   toast(title+' wird heruntergeladen...');
   const r = await window.api.addToInstance(currentInstance.id, slug, type);
-  if (r.success) { toast('✓ '+title+' hinzugefuegt!'); currentInstance=(await window.api.getInstances()).find(i=>i.id===currentInstance.id); renderInstanceContent(); }
-  else toast('✗ '+r.error);
+  if (r.success) {
+    toast(title+' hinzugefuegt!');
+    currentInstance=(await window.api.getInstances()).find(i=>i.id===currentInstance.id);
+    renderInstanceContent();
+    // Update loader badge (auto-upgrade to fabric when mods added)
+    if (currentInstance) {
+      document.getElementById('inst-detail-loader').textContent = currentInstance.loader;
+      document.getElementById('inst-detail-loader').className = 'pill' + (currentInstance.loader==='fabric'?' pill-fabric':'');
+    }
+  }
+  else toast('Fehler: '+r.error);
 };
 
 // ── Browse Tab ──
