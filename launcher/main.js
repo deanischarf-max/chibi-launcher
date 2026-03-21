@@ -472,6 +472,72 @@ app.whenReady().then(() => {
     shell.openExternal(url);
     return true;
   });
+
+  // ── Modrinth-Style Auto-Update ──
+  ipcMain.handle('check-update', async () => {
+    try {
+      const currentVersion = app.getVersion();
+      const https = require('https');
+      const release = await new Promise((resolve, reject) => {
+        https.get('https://api.github.com/repos/deanischarf-max/chibi-launcher/releases/latest', {
+          headers: { 'User-Agent': 'ChibiLauncher', Accept: 'application/vnd.github+json' }
+        }, res => {
+          let d = ''; res.on('data', c => d += c);
+          res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
+        }).on('error', reject);
+      });
+      const latest = (release.tag_name || '').replace(/^v/, '');
+      if (!latest) return { update: false, current: currentVersion, error: 'Kein Release gefunden' };
+      const cur = currentVersion.split('.').map(Number);
+      const lat = latest.split('.').map(Number);
+      let isNewer = false;
+      for (let i = 0; i < 3; i++) {
+        if ((lat[i]||0) > (cur[i]||0)) { isNewer = true; break; }
+        if ((lat[i]||0) < (cur[i]||0)) break;
+      }
+      const exe = (release.assets||[]).find(a => a.name.endsWith('.exe'));
+      const appImage = (release.assets||[]).find(a => a.name.endsWith('.AppImage'));
+      const asset = process.platform === 'win32' ? exe : appImage;
+      return { update: isNewer, current: currentVersion, latest, url: asset ? asset.browser_download_url : null, page: release.html_url };
+    } catch(e) {
+      return { update: false, current: app.getVersion(), error: e.message };
+    }
+  });
+
+  ipcMain.handle('download-update', async (ev, url) => {
+    try {
+      const tmpPath = path.join(app.getPath('temp'), 'ChibiLauncher-Update.exe');
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-dl-progress', 0);
+      await new Promise((resolve, reject) => {
+        const https = require('https');
+        const doReq = (u) => {
+          https.get(u, { headers: { 'User-Agent': 'ChibiLauncher' } }, res => {
+            if (res.statusCode === 301 || res.statusCode === 302) { res.resume(); doReq(res.headers.location); return; }
+            const total = parseInt(res.headers['content-length'] || '0');
+            let downloaded = 0;
+            const file = fs.createWriteStream(tmpPath);
+            res.on('data', chunk => {
+              downloaded += chunk.length;
+              file.write(chunk);
+              if (total > 0 && mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('update-dl-progress', Math.round((downloaded / total) * 100));
+              }
+            });
+            res.on('end', () => { file.end(); resolve(); });
+            res.on('error', reject);
+          }).on('error', reject);
+        };
+        doReq(url);
+      });
+      // Launch installer and quit
+      const { exec } = require('child_process');
+      exec(`"${tmpPath}"`, { detached: true, stdio: 'ignore' });
+      setTimeout(() => app.quit(), 1000);
+      return { success: true };
+    } catch(e) {
+      return { success: false, error: e.message };
+    }
+  });
 });
 app.on('window-all-closed', () => app.quit());
 

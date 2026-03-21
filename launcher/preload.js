@@ -34,4 +34,8 @@ contextBridge.exposeInMainWorld('api', {
   onLaunchProgress: (cb) => ipcRenderer.on('launch-progress', (_, d) => cb(d)),
   // Utils
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  // Update
+  checkUpdate: () => ipcRenderer.invoke('check-update'),
+  downloadUpdate: (url) => ipcRenderer.invoke('download-update', url),
+  onUpdateDlProgress: (cb) => ipcRenderer.on('update-dl-progress', (_, d) => cb(d)),
 });

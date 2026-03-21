@@ -74,53 +74,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.api.onCoinsUpdated(d => { updateCoins(d.coins); if(d.earned>0) toast('+'+d.earned+' Coins!'); document.getElementById('btn-play').classList.remove('hidden'); document.getElementById('play-status').classList.add('hidden'); });
   window.api.onLaunchError(e => { document.getElementById('btn-play').classList.remove('hidden'); document.getElementById('play-status').classList.add('hidden'); document.getElementById('error-log').textContent=e; document.getElementById('error-log').classList.remove('hidden'); });
   window.api.onLaunchProgress(p => { if(p.type) document.getElementById('play-status').innerHTML='<div class="spinner"></div><span>'+p.type+' ('+Math.round((p.task/p.total)*100)+'%)</span>'; });
-  // ── UPDATE CHECK (direkt im Renderer mit fetch - kein IPC noetig) ──
-  const APP_VERSION = '1.3.2';
-  let updateDownloadUrl = null;
+  // ── MODRINTH-STYLE UPDATE CHECK ──
+  const statusEl = document.getElementById('update-status');
 
-  async function checkForUpdates() {
+  async function checkUpdate() {
+    statusEl.innerHTML = '<span class="dim">Suche nach Updates...</span>';
     try {
-      toast('Suche nach Updates...');
-      const res = await fetch('https://api.github.com/repos/deanischarf-max/chibi-launcher/releases/latest');
-      const release = await res.json();
-      const latest = (release.tag_name || '').replace(/^v/, '');
-      if (!latest) { toast('Update-Check: Keine Version gefunden'); return; }
-
-      // Compare versions
-      const cur = APP_VERSION.split('.').map(Number);
-      const lat = latest.split('.').map(Number);
-      let isNewer = false;
-      for (let i = 0; i < 3; i++) {
-        if ((lat[i]||0) > (cur[i]||0)) { isNewer = true; break; }
-        if ((lat[i]||0) < (cur[i]||0)) break;
+      const r = await window.api.checkUpdate();
+      document.getElementById('app-version').textContent = 'v' + r.current;
+      if (r.error) {
+        statusEl.innerHTML = '<span style="color:#ff6b6b;font-size:12px">Update-Check: ' + r.error + '</span>';
+        return;
       }
-
-      if (isNewer) {
-        const exe = (release.assets||[]).find(a => a.name.endsWith('.exe'));
-        updateDownloadUrl = exe ? exe.browser_download_url : release.html_url;
-        document.getElementById('update-version').textContent = 'Version ' + latest + ' ist verfuegbar (du hast v' + APP_VERSION + ')';
-        document.getElementById('update-banner').classList.remove('hidden');
-        toast('Update v' + latest + ' verfuegbar!');
+      if (r.update && r.url) {
+        statusEl.innerHTML = '<div style="background:rgba(27,217,106,.15);border:1px solid rgba(27,217,106,.3);border-radius:8px;padding:10px;text-align:center">' +
+          '<div style="color:#1bd96a;font-weight:700;font-size:14px">Update v' + r.latest + ' verfuegbar!</div>' +
+          '<div class="dim" style="margin:4px 0">Du hast v' + r.current + '</div>' +
+          '<button class="btn btn-primary btn-sm" id="btn-do-update" style="margin-top:6px">Jetzt updaten</button>' +
+          '<div id="dl-bar" style="display:none;margin-top:8px"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden"><div id="dl-fill" style="height:100%;background:#1bd96a;width:0%;transition:width .3s"></div></div><div class="dim" style="text-align:center;margin-top:2px" id="dl-pct">0%</div></div>' +
+          '</div>';
+        document.getElementById('btn-do-update').onclick = async () => {
+          document.getElementById('btn-do-update').textContent = 'Wird heruntergeladen...';
+          document.getElementById('btn-do-update').disabled = true;
+          document.getElementById('dl-bar').style.display = 'block';
+          window.api.onUpdateDlProgress((pct) => {
+            document.getElementById('dl-fill').style.width = pct + '%';
+            document.getElementById('dl-pct').textContent = pct + '%';
+          });
+          const result = await window.api.downloadUpdate(r.url);
+          if (!result.success) {
+            document.getElementById('btn-do-update').textContent = 'Fehler - Im Browser oeffnen';
+            document.getElementById('btn-do-update').disabled = false;
+            document.getElementById('btn-do-update').onclick = () => window.api.openExternal(r.page || r.url);
+          }
+        };
+      } else if (r.update && !r.url) {
+        statusEl.innerHTML = '<a href="#" onclick="window.api.openExternal(\'' + r.page + '\')" style="color:#1bd96a;font-size:12px">Update v' + r.latest + ' verfuegbar - hier klicken</a>';
       } else {
-        toast('Auf dem neuesten Stand! (v' + APP_VERSION + ')');
+        statusEl.innerHTML = '<span style="color:#1bd96a;font-size:12px">&#10003; Aktuell (v' + r.current + ')</span>';
       }
     } catch(e) {
-      toast('Update-Check fehlgeschlagen: ' + e.message);
+      statusEl.innerHTML = '<span style="color:#ff6b6b;font-size:12px">Fehler: ' + e.message + '</span>';
     }
   }
-
-  // Check immediately
-  checkForUpdates();
-
-  // Update button opens browser
-  document.getElementById('btn-update').onclick = async () => {
-    if (updateDownloadUrl) {
-      await window.api.openExternal(updateDownloadUrl);
-      toast('Download im Browser geoeffnet!');
-    } else {
-      await window.api.openExternal('https://github.com/deanischarf-max/chibi-launcher/releases/latest');
-    }
-  };
+  checkUpdate();
 
   // ── Browse Tab ──
   document.querySelectorAll('.src-btn').forEach(b => b.onclick = () => { document.querySelectorAll('.src-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); browseType=b.dataset.btype; searchBrowse(''); });
