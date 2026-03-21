@@ -1,5 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const { autoUpdater } = require('electron-updater');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -468,54 +467,66 @@ app.whenReady().then(() => {
   store = new SimpleStore();
   createWindow();
 
-  // Auto-Update - don't auto-download, show UI banner instead
-  autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.allowDowngrade = false;
-  autoUpdater.verifyUpdateCodeSignature = false;
-  autoUpdater.setFeedURL({ provider: 'github', owner: 'deanischarf-max', repo: 'chibi-launcher' });
+  // ── Custom Update Check (kein electron-updater - das funktioniert nicht) ──
+  const CURRENT_VERSION = require('./package.json').version;
+  const GITHUB_RELEASES_API = 'https://api.github.com/repos/deanischarf-max/chibi-launcher/releases/latest';
 
-  autoUpdater.on('checking-for-update', () => {
-    console.log('[Update] Checking...');
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-checking');
-  });
-  autoUpdater.on('update-available', (info) => {
-    console.log('[Update] Available:', info.version);
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-available', { version: info.version });
-  });
-  autoUpdater.on('update-not-available', () => {
-    console.log('[Update] Up to date');
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-uptodate');
-  });
-  autoUpdater.on('download-progress', (p) => {
-    console.log('[Update] Progress:', Math.round(p.percent) + '%');
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-progress', Math.round(p.percent));
-  });
-  autoUpdater.on('update-downloaded', () => {
-    console.log('[Update] Downloaded, restarting...');
-    autoUpdater.quitAndInstall(false, true);
-  });
-  autoUpdater.on('error', (err) => {
-    console.error('[Update] Error:', err.message || err);
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-error', err.message || 'Unbekannter Fehler');
-  });
+  async function checkForUpdates() {
+    try {
+      console.log('[Update] Checking... Current version:', CURRENT_VERSION);
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-checking');
 
-  // IPC: user clicks "Update installieren"
-  ipcMain.handle('start-update', () => {
-    autoUpdater.downloadUpdate();
+      const release = await new Promise((resolve, reject) => {
+        const https = require('https');
+        https.get(GITHUB_RELEASES_API, { headers: { 'User-Agent': 'ChibiLauncher/' + CURRENT_VERSION, Accept: 'application/vnd.github+json' } }, res => {
+          let d = ''; res.on('data', c => d += c);
+          res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
+        }).on('error', reject);
+      });
+
+      const latestVersion = (release.tag_name || '').replace(/^v/, '');
+      console.log('[Update] Latest version:', latestVersion);
+
+      if (!latestVersion) {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-uptodate');
+        return;
+      }
+
+      // Compare versions
+      const current = CURRENT_VERSION.split('.').map(Number);
+      const latest = latestVersion.split('.').map(Number);
+      let isNewer = false;
+      for (let i = 0; i < 3; i++) {
+        if ((latest[i] || 0) > (current[i] || 0)) { isNewer = true; break; }
+        if ((latest[i] || 0) < (current[i] || 0)) break;
+      }
+
+      if (isNewer) {
+        // Find download URL for Windows exe
+        const exeAsset = (release.assets || []).find(a => a.name.endsWith('.exe'));
+        const downloadUrl = exeAsset ? exeAsset.browser_download_url : release.html_url;
+        console.log('[Update] Update available!', latestVersion, downloadUrl);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('update-available', { version: latestVersion, url: downloadUrl });
+        }
+      } else {
+        console.log('[Update] Up to date!');
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-uptodate');
+      }
+    } catch(e) {
+      console.error('[Update] Check failed:', e.message);
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('update-error', e.message);
+    }
+  }
+
+  // IPC: user clicks "Update installieren" → open browser to download
+  ipcMain.handle('start-update', (ev, url) => {
+    shell.openExternal(url || 'https://github.com/deanischarf-max/chibi-launcher/releases/latest');
     return true;
   });
 
-  // Check for updates as soon as possible
-  mainWindow.webContents.on('did-finish-load', () => {
-    console.log('[Update] Window loaded, checking for updates...');
-    try { autoUpdater.checkForUpdates(); } catch(e) { console.error('[Update] Check failed:', e); }
-  });
-  // Retry after 15 seconds in case first check was too early
-  setTimeout(() => {
-    console.log('[Update] Retry check...');
-    try { autoUpdater.checkForUpdates(); } catch(e) {}
-  }, 15000);
+  // Check immediately when window is ready
+  mainWindow.webContents.on('did-finish-load', () => checkForUpdates());
 });
 app.on('window-all-closed', () => app.quit());
 

@@ -38,5 +38,5 @@ contextBridge.exposeInMainWorld('api', {
   onUpdateUpToDate: (cb) => ipcRenderer.on('update-uptodate', () => cb()),
   onUpdateProgress: (cb) => ipcRenderer.on('update-progress', (_, d) => cb(d)),
   onUpdateError: (cb) => ipcRenderer.on('update-error', (_, d) => cb(d)),
-  startUpdate: () => ipcRenderer.invoke('start-update'),
+  startUpdate: (url) => ipcRenderer.invoke('start-update', url),
 });

@@ -77,6 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.api.onUpdateStatus(msg => toast(msg));
 
   // Update Banner
+  let updateDownloadUrl = null;
   window.api.onUpdateChecking(() => {
     toast('Suche nach Updates...');
   });
@@ -84,25 +85,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     toast('Auf dem neuesten Stand!');
   });
   window.api.onUpdateAvailable((info) => {
+    updateDownloadUrl = info.url;
     document.getElementById('update-version').textContent = 'Version ' + info.version + ' ist verfuegbar';
     document.getElementById('update-banner').classList.remove('hidden');
   });
-  window.api.onUpdateProgress((percent) => {
-    document.getElementById('update-progress').classList.remove('hidden');
-    document.getElementById('update-bar-fill').style.width = percent + '%';
-    document.getElementById('update-percent').textContent = percent + '%';
-  });
   window.api.onUpdateError((err) => {
     toast('Update-Fehler: ' + err);
-    document.getElementById('btn-update').textContent = 'Erneut versuchen';
-    document.getElementById('btn-update').disabled = false;
-    document.getElementById('update-progress').classList.add('hidden');
   });
   document.getElementById('btn-update').onclick = async () => {
-    document.getElementById('btn-update').textContent = 'Wird heruntergeladen...';
-    document.getElementById('btn-update').disabled = true;
-    document.getElementById('update-progress').classList.remove('hidden');
-    await window.api.startUpdate();
+    document.getElementById('btn-update').textContent = 'Oeffne Download...';
+    await window.api.startUpdate(updateDownloadUrl);
+    toast('Download im Browser geoeffnet!');
+    setTimeout(() => { document.getElementById('btn-update').textContent = 'Update installieren'; }, 3000);
   };
 
   // ── Browse Tab ──
