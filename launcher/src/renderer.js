@@ -156,7 +156,7 @@ async function renderInstances() {
         <span class="pill">${i.version}</span>
         <span class="pill${i.loader==='fabric'?' pill-fabric':i.loader==='forge'?' pill-forge':''}">${i.loader}</span>
       </div>
-      <div class="inst-mods">${(i.mods||[]).length} Mods &bull; ${(i.resourcepacks||[]).length} Packs &bull; ${(i.shaders||[]).length} Shaders</div>
+      <div class="inst-mods">${(i.mods||[]).filter(m=>!m.system).length} Mods &bull; ${(i.resourcepacks||[]).length} Packs &bull; ${(i.shaders||[]).length} Shaders</div>
       <button class="inst-play-btn" onclick="event.stopPropagation();quickPlay('${i.id}')">&#9654; Spielen</button>
     </div>
   `).join('');
@@ -173,7 +173,7 @@ window.openInstance = async function(id) {
   document.getElementById('inst-detail-name').textContent = currentInstance.name;
   document.getElementById('inst-detail-version').textContent = currentInstance.version;
   document.getElementById('inst-detail-loader').textContent = currentInstance.loader;
-  document.getElementById('inst-detail-modcount').textContent = (currentInstance.mods||[]).length + ' Mods';
+  document.getElementById('inst-detail-modcount').textContent = (currentInstance.mods||[]).filter(m=>!m.system).length + ' Mods';
   renderInstanceContent();
 };
 
@@ -192,16 +192,16 @@ window.quickPlay = async function(id) {
 };
 
 function renderInstanceContent() {
-  // Mods
-  const mods = currentInstance.mods || [];
+  // Mods (hide system mods)
+  const mods = (currentInstance.mods || []).filter(m => !m.system);
   document.getElementById('inst-mod-list').innerHTML = mods.length === 0 ? '<span class="dim">Keine Mods</span>' :
-    mods.map(m => `<div class="mod-card${m.system?' mod-system':''}">
+    mods.map(m => `<div class="mod-card">
       <img class="mod-icon" src="${m.icon||''}" onerror="this.style.display='none'" alt="">
       <div class="mod-info">
-        <div class="mod-name">${esc(m.title||m.name)}${m.system?' <span style="color:var(--dim);font-size:10px">&#128274; System</span>':''}</div>
+        <div class="mod-name">${esc(m.title||m.name)}</div>
         <div class="mod-file dim">${esc(m.file)}</div>
       </div>
-      ${m.system?'':'<button class="inst-delete" onclick="removeFromInstance(\''+currentInstance.id+'\',\''+esc(m.file)+'\',\'mod\')">&times;</button>'}
+      <button class="inst-delete" onclick="removeFromInstance('${currentInstance.id}','${esc(m.file)}','mod')">&times;</button>
     </div>`).join('');
   // Resource Packs
   const rps = currentInstance.resourcepacks || [];
