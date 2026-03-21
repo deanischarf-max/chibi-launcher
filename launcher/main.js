@@ -904,28 +904,58 @@ async function downloadJava() {
   });
 }
 
-// ── Chibi Cosmetics Mod Auto-Install ──
-const COSMETICS_MOD_URL = 'https://github.com/deanischarf-max/chibi-launcher/releases/latest/download/ChibiCosmetics-1.0.0.jar';
-const COSMETICS_MOD_NAME = 'ChibiCosmetics-1.0.0.jar';
+// ── Cosmetics Mods Auto-Install (Modrinth) ──
+const COSMETICS_MODS = [
+  { slug: 'cosmetica', title: 'Cosmetica', name: 'cosmetica' },
+  { slug: 'ears', title: 'Ears', name: 'ears' },
+  { slug: 'capes', title: 'Capes', name: 'capes' },
+  { slug: 'skinlayers3d', title: '3D Skin Layers', name: 'skinlayers3d' },
+];
 
 async function ensureCosmeticsMod(instId) {
   try {
-    const modsDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, 'mods');
-    const modPath = path.join(modsDir, COSMETICS_MOD_NAME);
-    if (fs.existsSync(modPath)) return; // Already installed
-    fs.mkdirSync(modsDir, { recursive: true });
-    console.log('[Cosmetics] Downloading ChibiCosmetics mod...');
-    await downloadFile(COSMETICS_MOD_URL, modPath);
-    console.log('[Cosmetics] Installed:', modPath);
-    // Track in instance data
     const instances = store.get('instances', []);
     const inst = instances.find(i => i.id === instId);
-    if (inst) {
-      if (!inst.mods) inst.mods = [];
-      if (!inst.mods.some(m => m.file === COSMETICS_MOD_NAME)) {
-        inst.mods.push({ name: 'chibi-cosmetics', file: COSMETICS_MOD_NAME, title: 'Chibi Cosmetics', icon: '', system: true });
-        store.set('instances', instances);
+    if (!inst) return;
+    const mcVersion = inst.version;
+    if (!mcVersion) return;
+    const modsDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, 'mods');
+    fs.mkdirSync(modsDir, { recursive: true });
+    if (!inst.mods) inst.mods = [];
+    let changed = false;
+
+    for (const cosmMod of COSMETICS_MODS) {
+      // Skip if already installed
+      if (inst.mods.some(m => m.name === cosmMod.name && m.system)) continue;
+
+      try {
+        console.log(`[Cosmetics] Fetching ${cosmMod.title} for MC ${mcVersion}...`);
+        const versions = await modrinthGet(`/project/${cosmMod.slug}/version?game_versions=["${mcVersion}"]&loaders=["fabric"]`);
+        if (!versions || !versions.length) {
+          console.warn(`[Cosmetics] No compatible version of ${cosmMod.title} for MC ${mcVersion}`);
+          continue;
+        }
+        const ver = versions[0];
+        const primaryFile = ver.files.find(f => f.primary) || ver.files[0];
+        if (!primaryFile) continue;
+
+        const fileName = primaryFile.filename;
+        const modPath = path.join(modsDir, fileName);
+        if (!fs.existsSync(modPath)) {
+          console.log(`[Cosmetics] Downloading ${cosmMod.title}: ${fileName}...`);
+          await downloadFile(primaryFile.url, modPath);
+          console.log(`[Cosmetics] Installed: ${modPath}`);
+        }
+
+        inst.mods.push({ name: cosmMod.name, file: fileName, title: cosmMod.title, icon: '', system: true });
+        changed = true;
+      } catch(e) {
+        console.warn(`[Cosmetics] Failed to install ${cosmMod.title}:`, e.message);
       }
+    }
+
+    if (changed) {
+      store.set('instances', instances);
     }
   } catch(e) {
     console.warn('[Cosmetics] Auto-install failed:', e.message);
