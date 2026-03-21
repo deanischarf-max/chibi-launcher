@@ -177,13 +177,17 @@ window.removeFromInstance = async function(instId, file, type) {
   toast('Entfernt');
 };
 
-// ── Search for instance content ──
-async function searchForInstance(type, query, gridId) {
+// ── Search for instance content (filtered by instance MC version) ──
+async function searchForInstance(type, query, gridId, offset) {
   const grid = document.getElementById(gridId);
-  grid.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px;color:var(--dim)"><div class="spinner"></div>Suche...</div>';
-  const results = await window.api.searchModrinth(type, query);
-  if (!results || results.length === 0) { grid.innerHTML = '<span class="dim">Keine Ergebnisse</span>'; return; }
-  grid.innerHTML = results.map(r => `
+  const off = offset || 0;
+  if (off === 0) grid.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px;color:var(--dim)"><div class="spinner"></div>Suche...</div>';
+  const gameVersion = currentInstance ? currentInstance.version : null;
+  const data = await window.api.searchModrinth(type, query, gameVersion, off);
+  const results = data.hits || data || [];
+  const total = data.total || 0;
+  if (results.length === 0 && off === 0) { grid.innerHTML = '<span class="dim">Keine Ergebnisse</span>'; return; }
+  const cards = results.map(r => `
     <div class="browse-card">
       <img class="browse-icon" src="${r.icon_url||''}" onerror="this.style.display='none'" alt="">
       <div class="browse-info">
@@ -196,7 +200,13 @@ async function searchForInstance(type, query, gridId) {
       </div>
     </div>
   `).join('');
+  if (off === 0) grid.innerHTML = cards; else { const btn = grid.querySelector('.load-more-btn'); if(btn) btn.remove(); grid.innerHTML += cards; }
+  const loaded = off + results.length;
+  if (loaded < total) {
+    grid.innerHTML += `<button class="btn btn-primary btn-full load-more-btn" style="margin-top:10px" onclick="loadMoreInstance('${type}','${esc(query||'')}','${gridId}',${loaded})">Mehr laden (${loaded}/${total})</button>`;
+  }
 }
+window.loadMoreInstance = function(type, query, gridId, offset) { searchForInstance(type, query, gridId, offset); };
 
 window.addToInstance = async function(slug, title, type) {
   if (!currentInstance) return toast('Keine Instanz offen');
@@ -216,12 +226,17 @@ window.addToInstance = async function(slug, title, type) {
 };
 
 // ── Browse Tab ──
-async function searchBrowse(query) {
+let browseQuery = '';
+async function searchBrowse(query, offset) {
+  browseQuery = query;
   const grid = document.getElementById('browse-grid');
-  grid.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px;color:var(--dim)"><div class="spinner"></div>Laden...</div>';
-  const results = await window.api.searchModrinth(browseType, query);
-  if (!results || results.length === 0) { grid.innerHTML = '<span class="dim">Keine Ergebnisse</span>'; return; }
-  grid.innerHTML = results.map(r => `
+  const off = offset || 0;
+  if (off === 0) grid.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px;color:var(--dim)"><div class="spinner"></div>Laden...</div>';
+  const data = await window.api.searchModrinth(browseType, query, null, off);
+  const results = data.hits || data || [];
+  const total = data.total || 0;
+  if (results.length === 0 && off === 0) { grid.innerHTML = '<span class="dim">Keine Ergebnisse</span>'; return; }
+  const cards = results.map(r => `
     <div class="browse-card">
       <img class="browse-icon" src="${r.icon_url||''}" onerror="this.style.display='none'" alt="">
       <div class="browse-info">
@@ -238,7 +253,13 @@ async function searchBrowse(query) {
       </div>
     </div>
   `).join('');
+  if (off === 0) grid.innerHTML = cards; else { const btn = grid.querySelector('.load-more-btn'); if(btn) btn.remove(); grid.innerHTML += cards; }
+  const loaded = off + results.length;
+  if (loaded < total) {
+    grid.innerHTML += `<button class="btn btn-primary btn-full load-more-btn" style="margin-top:10px" onclick="loadMoreBrowse(${loaded})">Mehr laden (${loaded}/${total})</button>`;
+  }
 }
+window.loadMoreBrowse = function(offset) { searchBrowse(browseQuery, offset); };
 
 window.browseInstall = async function(slug, title) {
   const instances = await window.api.getInstances();

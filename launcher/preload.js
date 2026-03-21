@@ -19,7 +19,7 @@ contextBridge.exposeInMainWorld('api', {
   addToInstance: (id, slug, type) => ipcRenderer.invoke('add-to-instance', id, slug, type),
   removeFromInstance: (id, file, type) => ipcRenderer.invoke('remove-from-instance', id, file, type),
   // Modrinth
-  searchModrinth: (type, query) => ipcRenderer.invoke('search-modrinth', type, query),
+  searchModrinth: (type, query, gameVersion, offset) => ipcRenderer.invoke('search-modrinth', type, query, gameVersion, offset),
   getCosmetics: () => ipcRenderer.invoke('get-cosmetics'),
   getOwnedCosmetics: () => ipcRenderer.invoke('get-owned-cosmetics'),
   getEquippedCosmetics: () => ipcRenderer.invoke('get-equipped-cosmetics'),

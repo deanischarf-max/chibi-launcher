@@ -1136,26 +1136,32 @@ function modrinthGet(urlPath) {
   });
 }
 
-ipcMain.handle('search-modrinth', async (ev, type, query) => {
+ipcMain.handle('search-modrinth', async (ev, type, query, gameVersion, offset) => {
   try {
     const facets = [['project_type:' + type]];
+    if (gameVersion) facets.push(['versions:' + gameVersion]);
     const q = encodeURIComponent(query || '');
     const facetsStr = encodeURIComponent(JSON.stringify(facets));
-    const url = `/search?query=${q}&facets=${facetsStr}&limit=25&index=relevance`;
+    const off = offset || 0;
+    const url = `/search?query=${q}&facets=${facetsStr}&limit=100&offset=${off}&index=relevance`;
     console.log('[Modrinth] Search:', url);
     const data = await modrinthGet(url);
     console.log('[Modrinth] Results:', data.total_hits || 0);
-    return (data.hits || []).map(h => ({
-      slug: h.slug,
-      title: h.title,
-      description: h.description,
-      downloads: h.downloads,
-      follows: h.follows,
-      icon_url: h.icon_url || '',
-      author: h.author || '',
-      categories: h.categories || [],
-    }));
-  } catch(e) { console.error('Modrinth search error:', e); return []; }
+    return {
+      hits: (data.hits || []).map(h => ({
+        slug: h.slug,
+        title: h.title,
+        description: h.description,
+        downloads: h.downloads,
+        follows: h.follows,
+        icon_url: h.icon_url || '',
+        author: h.author || '',
+        categories: h.categories || [],
+      })),
+      total: data.total_hits || 0,
+      offset: off,
+    };
+  } catch(e) { console.error('Modrinth search error:', e); return { hits: [], total: 0, offset: 0 }; }
 });
 
 function downloadFile(url, dest) {
