@@ -131,6 +131,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .cosm-card.owned{border-color:var(--green)}.cosm-card.equipped{border-color:var(--gold);box-shadow:0 0 16px rgba(255,215,0,.15)}
 .cosm-icon{width:100%;height:100px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:42px;position:relative;overflow:hidden;border:2px solid rgba(255,255,255,.1);margin-bottom:8px}
 .cosm-icon::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 50%,rgba(0,0,0,.1) 100%);pointer-events:none}
+/* Skin Preview */
+.cosm-preview{position:relative;width:64px;height:80px;z-index:1;display:flex;align-items:center;justify-content:center}
+.cosm-skin{width:48px;height:72px;image-rendering:pixelated;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.cosm-overlay{position:absolute;inset:0;pointer-events:none}
+
 /* 3D Model Scene */
 .m3d-scene{perspective:200px;width:60px;height:70px;display:flex;align-items:center;justify-content:center;z-index:1}
 .m3d-rotate{transform-style:preserve-3d;animation:m3dSpin 4s ease-in-out infinite;display:flex;flex-direction:column;align-items:center;justify-content:center}

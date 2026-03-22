@@ -1,7 +1,56 @@
 let cosmetics=[],ownedCosmetics=[],equippedCosmetics={},currentCat='capes',profile=null;
 let currentInstance=null, browseType='modpack';
 const CAT_GRADIENTS={capes:'linear-gradient(135deg, #1a1a3e, #2d1b69)',hats:'linear-gradient(135deg, #1b3a1b, #2d6930)',wings:'linear-gradient(135deg, #1b2a3e, #2d4b69)',auras:'linear-gradient(135deg, #3e1a3e, #692d69)',emotes:'linear-gradient(135deg, #3e3a1a, #69602d)',pets:'linear-gradient(135deg, #1a3e2a, #2d694b)',trails:'linear-gradient(135deg, #3e1a1a, #692d2d)',particles:'linear-gradient(135deg, #1a2e3e, #2d5069)',accessories:'linear-gradient(135deg, #2e2e1a, #52522d)',masks:'linear-gradient(135deg, #1a1a1a, #3d3d3d)',mounts:'linear-gradient(135deg, #2e1a1a, #523030)',banners:'linear-gradient(135deg, #1a1a2e, #2d2d52)',sounds:'linear-gradient(135deg, #1a2e1a, #2d522d)',titles:'linear-gradient(135deg, #2e2e2e, #4a4a4a)'};
-// 3D CSS models for each cosmetic - rendered as rotating 3D shapes
+// Cosmetic color based on name keywords
+function cosmColor(id) {
+  if (!id) return '#e94560';
+  if (id.includes('fire')||id.includes('feuer')||id.includes('flamm')||id.includes('lava')||id.includes('vulkan')) return '#ef4444';
+  if (id.includes('ice')||id.includes('eis')||id.includes('snow')||id.includes('schnee')||id.includes('winter')) return '#38bdf8';
+  if (id.includes('rainbow')||id.includes('regenbogen')) return '#a855f7';
+  if (id.includes('shadow')||id.includes('schatten')||id.includes('void')||id.includes('wither')||id.includes('halloween')) return '#374151';
+  if (id.includes('sun')||id.includes('sonn')||id.includes('gold')||id.includes('licht')||id.includes('sommer')) return '#fbbf24';
+  if (id.includes('cherry')||id.includes('kirsch')||id.includes('sakura')||id.includes('herz')||id.includes('heart')||id.includes('kawaii')) return '#f472b6';
+  if (id.includes('dragon')||id.includes('drach')) return '#7c3aed';
+  if (id.includes('creeper')||id.includes('natur')||id.includes('blumen')||id.includes('frueh')) return '#22c55e';
+  if (id.includes('ender')||id.includes('portal')) return '#8b5cf6';
+  if (id.includes('neon')||id.includes('pixel')) return '#06b6d4';
+  if (id.includes('redstone')) return '#dc2626';
+  if (id.includes('diamond')||id.includes('diamant')||id.includes('kristall')) return '#22d3ee';
+  if (id.includes('odin')||id.includes('zeus')||id.includes('blitz')) return '#fcd34d';
+  if (id.includes('einhorn')) return '#e879f9';
+  if (id.includes('anubis')||id.includes('hades')) return '#92400e';
+  return '#e94560';
+}
+
+// Build cosmetic preview with player skin + overlay
+function buildPreview(c) {
+  const skin = (profile && profile.name) ? profile.name : 'Steve';
+  const skinUrl = 'https://mc-heads.net/body/' + skin + '/64';
+  const col = cosmColor(c.id);
+  const cat = c.category;
+
+  // Category-specific overlay on the player skin
+  const overlays = {
+    capes: `<div style="position:absolute;right:6px;top:18px;width:18px;height:32px;background:${col};border-radius:1px 1px 3px 3px;opacity:.85;box-shadow:0 2px 6px ${col}55"></div>`,
+    hats: `<div style="position:absolute;left:50%;top:2px;transform:translateX(-50%);width:22px;height:12px;background:${col};border-radius:3px 3px 1px 1px;box-shadow:0 -2px 6px ${col}55"></div><div style="position:absolute;left:50%;top:13px;transform:translateX(-50%);width:28px;height:4px;background:${col};border-radius:1px;opacity:.7"></div>`,
+    wings: `<div style="position:absolute;right:2px;top:14px;width:14px;height:28px;background:${col};opacity:.7;border-radius:50% 0 0 50%;transform:skewY(-8deg);box-shadow:0 0 8px ${col}55"></div><div style="position:absolute;left:2px;top:14px;width:14px;height:28px;background:${col};opacity:.7;border-radius:0 50% 50% 0;transform:skewY(8deg);box-shadow:0 0 8px ${col}55"></div>`,
+    auras: `<div style="position:absolute;inset:0;border:2px solid ${col};border-radius:50%;opacity:.5;animation:m3dPulse 2s infinite"></div><div style="position:absolute;inset:8px;border:1px solid ${col};border-radius:50%;opacity:.3"></div>`,
+    emotes: `<div style="position:absolute;top:4px;right:2px;background:${col};color:#fff;font-size:8px;padding:2px 4px;border-radius:4px;font-weight:700">!</div>`,
+    pets: `<div style="position:absolute;bottom:4px;right:2px;width:14px;height:12px;background:${col};border-radius:3px;box-shadow:0 0 6px ${col}55"><div style="width:4px;height:4px;background:#111;border-radius:50%;position:absolute;top:3px;left:2px"></div><div style="width:4px;height:4px;background:#111;border-radius:50%;position:absolute;top:3px;right:2px"></div></div>`,
+    trails: `<div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px"><div style="width:4px;height:4px;background:${col};border-radius:50%;opacity:.4"></div><div style="width:6px;height:6px;background:${col};border-radius:50%;opacity:.6"></div><div style="width:8px;height:8px;background:${col};border-radius:50%;opacity:.8"></div></div>`,
+    particles: `<div style="position:absolute;top:8px;left:6px;width:5px;height:5px;background:${col};transform:rotate(45deg);opacity:.7"></div><div style="position:absolute;top:20px;right:4px;width:4px;height:4px;background:${col};transform:rotate(45deg);opacity:.5"></div><div style="position:absolute;bottom:12px;left:10px;width:3px;height:3px;background:${col};transform:rotate(45deg);opacity:.6"></div>`,
+    accessories: `<div style="position:absolute;top:22px;left:50%;transform:translateX(-50%);width:20px;height:2px;background:${col};border-radius:1px"></div><div style="position:absolute;top:24px;left:50%;transform:translateX(-50%);width:6px;height:6px;background:${col};border-radius:50%;box-shadow:0 0 4px ${col}"></div>`,
+    masks: `<div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:20px;height:12px;background:${col};border-radius:4px;opacity:.8"><div style="position:absolute;width:5px;height:4px;background:#111;border-radius:50%;top:3px;left:2px"></div><div style="position:absolute;width:5px;height:4px;background:#111;border-radius:50%;top:3px;right:2px"></div></div>`,
+    mounts: `<div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:30px;height:16px;background:${col};border-radius:4px 4px 0 0;opacity:.7"><div style="width:10px;height:8px;background:${col};border-radius:2px;position:absolute;top:-6px;left:-2px"></div></div>`,
+    banners: `<div style="position:absolute;top:10px;right:4px;width:2px;height:36px;background:#aaa"></div><div style="position:absolute;top:12px;right:6px;width:12px;height:20px;background:${col};border-radius:0 0 2px 2px;opacity:.85"></div>`,
+    sounds: `<div style="position:absolute;top:6px;right:4px;font-size:14px;opacity:.8">♪</div><div style="position:absolute;bottom:10px;left:4px;font-size:10px;opacity:.6;color:${col}">♫</div>`,
+    titles: `<div style="position:absolute;top:0px;left:50%;transform:translateX(-50%);background:${col};color:#fff;font-size:7px;padding:1px 6px;border-radius:3px;font-weight:700;white-space:nowrap;box-shadow:0 1px 4px ${col}55">${c.name.split(' ')[0]}</div>`,
+  };
+
+  return `<div class="cosm-preview"><img class="cosm-skin" src="${skinUrl}" alt=""><div class="cosm-overlay">${overlays[cat]||''}</div></div>`;
+}
+
+// Old build3D kept as fallback
 function build3D(category, color1, color2) {
   const c1 = color1 || '#e94560', c2 = color2 || '#533483';
   const shapes = {
@@ -396,14 +445,13 @@ function renderCosmetics() {
   g.innerHTML=cosmetics.filter(c=>c.category===currentCat).map(c=>{
     const own=ownedCosmetics.includes(c.id),eq=equippedCosmetics[c.category]===c.id;
     const grad=CAT_GRADIENTS[c.category]||CAT_GRADIENTS.capes;
-    const colors=CAT_COLORS[c.category]||CAT_COLORS.capes;
-    const model=build3D(c.category, colors[0], colors[1]);
+    const preview = buildPreview(c);
     let cls='cosm-card',badge='';
     if(eq){cls+=' equipped';badge='<span class="badge badge-equipped">Equipped</span>';}
     else if(own){cls+=' owned';badge='<span class="badge badge-owned">Besitzt</span>';}
     else if(profile&&profile.isVIP)badge='<span class="badge badge-vip">VIP</span>';
     else badge='<span class="badge badge-buy">Kaufen</span>';
-    return '<div class="'+cls+'" onclick="cosClick(\''+c.id+'\')"><div class="cosm-icon" style="background:'+grad+'">'+model+'</div><div class="cosm-name">'+c.name+'</div><div class="cosm-desc">'+c.description+'</div><div class="cosm-foot"><span class="cosm-price">&#x1FA99; '+c.price+'</span>'+badge+'</div></div>';
+    return '<div class="'+cls+'" onclick="cosClick(\''+c.id+'\')"><div class="cosm-icon" style="background:'+grad+'">'+preview+'</div><div class="cosm-name">'+c.name+'</div><div class="cosm-desc">'+c.description+'</div><div class="cosm-foot"><span class="cosm-price">&#x1FA99; '+c.price+'</span>'+badge+'</div></div>';
   }).join('');
 }
 window.cosClick=async function(id){if(!ownedCosmetics.includes(id)){const r=await window.api.buyCosmetic(id);if(r.success){ownedCosmetics.push(id);updateCoins(r.coins);toast('Gekauft!');}else{toast(r.error);return;}}const r=await window.api.equipCosmetic(id);if(r.success){equippedCosmetics=r.equipped;renderCosmetics();const c=cosmetics.find(x=>x.id===id);toast(equippedCosmetics[c.category]===id?c.name+' ausgeruestet!':c.name+' abgelegt.');}};
