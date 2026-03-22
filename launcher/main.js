@@ -924,6 +924,13 @@ async function ensureCosmeticsMod(instId) {
     if (!inst.mods) inst.mods = [];
     let changed = false;
 
+    // Remove old broken ChibiCosmetics particle mod
+    const oldMod = path.join(modsDir, 'ChibiCosmetics-1.0.0.jar');
+    if (fs.existsSync(oldMod)) {
+      try { fs.unlinkSync(oldMod); console.log('[Cosmetics] Removed old ChibiCosmetics JAR'); } catch(e) {}
+    }
+    inst.mods = inst.mods.filter(m => m.name !== 'chibi-cosmetics');
+
     for (const cosmMod of COSMETICS_MODS) {
       // Skip if already installed
       if (inst.mods.some(m => m.name === cosmMod.name && m.system)) continue;
