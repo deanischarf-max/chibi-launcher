@@ -363,10 +363,13 @@ window.loadMoreInstance = function(type, query, gridId, offset) { searchForInsta
 
 window.addToInstance = async function(slug, title, type) {
   if (!currentInstance) return toast('Keine Instanz offen');
+  // Duplikat-Check
+  const all = (currentInstance.mods||[]).concat(currentInstance.resourcepacks||[]).concat(currentInstance.shaders||[]);
+  if (all.some(m => m.name === slug)) { toast(title + ' ist bereits installiert!'); return; }
   toast(title+' wird heruntergeladen...');
   const r = await window.api.addToInstance(currentInstance.id, slug, type);
   if (r.success) {
-    toast(title+' hinzugefuegt!');
+    toast(title+' erfolgreich installiert!');
     currentInstance=(await window.api.getInstances()).find(i=>i.id===currentInstance.id);
     renderInstanceContent();
     // Update loader badge (auto-upgrade to fabric when mods added)
@@ -621,6 +624,16 @@ function updateSkinViewer(cosmetic) {
 }
 
 window.openFolder = function(sub) { if (currentInstance) window.api.openInstanceFolder(currentInstance.id, sub); };
+
+window.renameInstance = async function() {
+  if (!currentInstance) return;
+  const newName = prompt('Neuer Name:', currentInstance.name);
+  if (!newName || newName === currentInstance.name) return;
+  await window.api.renameInstance(currentInstance.id, newName);
+  currentInstance.name = newName;
+  document.getElementById('inst-detail-name').textContent = newName;
+  toast('Instanz umbenannt zu "' + newName + '"');
+};
 
 function toast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3000);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}

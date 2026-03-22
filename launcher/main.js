@@ -1186,6 +1186,15 @@ ipcMain.handle('create-instance', (ev, name, version, loader) => {
 
 ipcMain.handle('get-instances', () => store.get('instances', []));
 
+ipcMain.handle('rename-instance', (ev, id, newName) => {
+  const instances = store.get('instances', []);
+  const inst = instances.find(i => i.id === id);
+  if (!inst) return { success: false };
+  inst.name = newName;
+  store.set('instances', instances);
+  return { success: true };
+});
+
 ipcMain.handle('delete-instance', (ev, id) => {
   const instances = store.get('instances', []).filter(i => i.id !== id);
   store.set('instances', instances);

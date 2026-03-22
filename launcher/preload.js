@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   // Instances
   createInstance: (name, version, loader) => ipcRenderer.invoke('create-instance', name, version, loader),
   getInstances: () => ipcRenderer.invoke('get-instances'),
+  renameInstance: (id, name) => ipcRenderer.invoke('rename-instance', id, name),
   deleteInstance: (id) => ipcRenderer.invoke('delete-instance', id),
   launchInstance: (id) => ipcRenderer.invoke('launch-instance', id),
   addToInstance: (id, slug, type) => ipcRenderer.invoke('add-to-instance', id, slug, type),
