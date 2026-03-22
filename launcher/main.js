@@ -1380,10 +1380,23 @@ ipcMain.handle('equip-cosmetic', (ev, id) => {
   const eq = store.get(`equipped_${p.name}`, {});
   if (eq[c.category] === id) delete eq[c.category]; else eq[c.category] = id;
   store.set(`equipped_${p.name}`, eq);
+  // Save to .chibi-minecraft so the Fabric mod can read it
+  saveCosmeticsForMod(p.name, eq);
   // Sync to cloud so other players can see your cosmetics
   syncCosmeticsToCloud(p.name, eq);
   return { success: true, equipped: eq };
 });
+
+// ── Save cosmetics to .chibi-minecraft for Fabric mod ──
+function saveCosmeticsForMod(playerName, equipped) {
+  try {
+    const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
+    fs.mkdirSync(mcRoot, { recursive: true });
+    const data = { player: playerName, equipped: equipped, timestamp: Date.now() };
+    fs.writeFileSync(path.join(mcRoot, 'chibi-cosmetics.json'), JSON.stringify(data, null, 2));
+    console.log('[Cosmetics] Saved to', path.join(mcRoot, 'chibi-cosmetics.json'));
+  } catch(e) { console.warn('[Cosmetics] Save failed:', e.message); }
+}
 
 // ── Cloud Cosmetics Sync ──
 // Uses a simple JSON file on GitHub Pages for sharing cosmetics between players
