@@ -1460,6 +1460,97 @@ ipcMain.handle('search-modrinth', async (ev, type, query, gameVersion, offset) =
   } catch(e) { console.error('Modrinth search error:', e); return { hits: [], total: 0, offset: 0 }; }
 });
 
+// ── CurseForge API ──
+const CF_API_KEY = '$2a$10$bL4bIL5pUWqfcO7KQtnMReakwtfHbNKh6v1uTpKlg4tMOAUqGYgHO';
+const CF_API = 'https://api.curseforge.com/v1';
+const CF_GAME_ID = 432; // Minecraft
+const CF_CLASS = { mod: 6, resourcepack: 12, modpack: 4471, shader: 6552 };
+
+function cfGet(urlPath) {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    const url = new URL(CF_API + urlPath);
+    https.get({
+      hostname: url.hostname, path: url.pathname + url.search,
+      headers: { 'x-api-key': CF_API_KEY, 'Accept': 'application/json', 'User-Agent': 'ChibiLauncher/1.7' }
+    }, res => {
+      let d = ''; res.on('data', c => d += c);
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
+    }).on('error', reject);
+  });
+}
+
+ipcMain.handle('search-curseforge', async (ev, type, query, gameVersion, offset) => {
+  try {
+    const classId = CF_CLASS[type] || CF_CLASS.mod;
+    const off = offset || 0;
+    let url = `/mods/search?gameId=${CF_GAME_ID}&classId=${classId}&sortField=2&sortOrder=desc&pageSize=50&index=${off}`;
+    if (query) url += '&searchFilter=' + encodeURIComponent(query);
+    if (gameVersion) url += '&gameVersion=' + encodeURIComponent(gameVersion);
+    console.log('[CurseForge] Search:', url);
+    const data = await cfGet(url);
+    const results = (data.data || []).map(m => ({
+      slug: String(m.id),
+      title: m.name,
+      description: m.summary || '',
+      downloads: m.downloadCount || 0,
+      follows: m.thumbsUpCount || 0,
+      icon_url: m.logo ? m.logo.thumbnailUrl : '',
+      author: (m.authors && m.authors[0]) ? m.authors[0].name : '',
+      categories: (m.categories || []).map(c => c.name),
+      source: 'curseforge',
+      cfId: m.id,
+    }));
+    return { hits: results, total: data.pagination ? data.pagination.totalCount : results.length, offset: off };
+  } catch(e) { console.error('CurseForge search error:', e); return { hits: [], total: 0, offset: 0 }; }
+});
+
+ipcMain.handle('add-curseforge-to-instance', async (ev, instId, cfId, type) => {
+  try {
+    const instances = store.get('instances', []);
+    const inst = instances.find(i => i.id === instId);
+    if (!inst) return { success: false, error: 'Instanz nicht gefunden' };
+
+    // Get mod files
+    const data = await cfGet(`/mods/${cfId}/files?gameVersion=${inst.version}&modLoaderType=4&pageSize=1`);
+    let files = data.data || [];
+    if (files.length === 0) {
+      // Try without version filter
+      const allFiles = await cfGet(`/mods/${cfId}/files?pageSize=1`);
+      files = allFiles.data || [];
+    }
+    if (files.length === 0) return { success: false, error: 'Keine Datei gefunden' };
+
+    const file = files[0];
+    const downloadUrl = file.downloadUrl;
+    if (!downloadUrl) return { success: false, error: 'Download nicht verfuegbar (Autor hat externe Downloads deaktiviert)' };
+
+    // Get mod info for title/icon
+    const modInfo = await cfGet(`/mods/${cfId}`);
+    const mod = modInfo.data || {};
+    const title = mod.name || String(cfId);
+    const icon = mod.logo ? mod.logo.thumbnailUrl : '';
+
+    // Download
+    const subdir = type === 'resourcepack' ? 'resourcepacks' : type === 'shader' ? 'shaderpacks' : 'mods';
+    const instDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, subdir);
+    fs.mkdirSync(instDir, { recursive: true });
+    console.log('[CurseForge] Downloading', file.fileName, 'from', downloadUrl);
+    await downloadFile(downloadUrl, path.join(instDir, file.fileName));
+
+    // Track
+    const list = type === 'resourcepack' ? 'resourcepacks' : type === 'shader' ? 'shaders' : 'mods';
+    if (!inst[list]) inst[list] = [];
+    if (!inst[list].find(m => m.file === file.fileName)) {
+      inst[list].push({ name: String(cfId), file: file.fileName, title, icon });
+    }
+    // Auto-upgrade to Fabric
+    if (type === 'mod' && inst.loader === 'vanilla') { inst.loader = 'fabric'; }
+    store.set('instances', instances);
+    return { success: true };
+  } catch(e) { return { success: false, error: e.message }; }
+});
+
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     const doReq = (u, redirectCount) => {

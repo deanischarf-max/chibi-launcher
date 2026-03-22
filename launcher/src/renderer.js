@@ -367,14 +367,31 @@ window.addToInstance = async function(slug, title, type) {
   else toast('Fehler: '+r.error);
 };
 
-// ── Browse Tab ──
+// ── Browse Tab (Modrinth + CurseForge) ──
 let browseQuery = '';
+let browsePlatform = 'modrinth';
+
+window.switchPlatform = function(p) {
+  browsePlatform = p;
+  document.getElementById('btn-platform-modrinth').classList.toggle('active', p === 'modrinth');
+  document.getElementById('btn-platform-curseforge').classList.toggle('active', p === 'curseforge');
+  document.getElementById('browse-search').placeholder = p === 'modrinth' ? 'Suchen auf Modrinth...' : 'Suchen auf CurseForge...';
+  searchBrowse('');
+};
+
 async function searchBrowse(query, offset) {
   browseQuery = query;
   const grid = document.getElementById('browse-grid');
   const off = offset || 0;
-  if (off === 0) grid.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px;color:var(--dim)"><div class="spinner"></div>Laden...</div>';
-  const data = await window.api.searchModrinth(browseType, query, null, off);
+  if (off === 0) grid.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px;color:var(--dim)"><div class="spinner"></div>Suche auf ' + (browsePlatform === 'modrinth' ? 'Modrinth' : 'CurseForge') + '...</div>';
+
+  let data;
+  if (browsePlatform === 'curseforge') {
+    data = await window.api.searchCurseForge(browseType, query, null, off);
+  } else {
+    data = await window.api.searchModrinth(browseType, query, null, off);
+  }
+
   const results = data.hits || data || [];
   const total = data.total || 0;
   if (results.length === 0 && off === 0) { grid.innerHTML = '<span class="dim">Keine Ergebnisse</span>'; return; }
@@ -382,7 +399,7 @@ async function searchBrowse(query, offset) {
     <div class="browse-card">
       <img class="browse-icon" src="${r.icon_url||''}" onerror="this.style.display='none'" alt="">
       <div class="browse-info">
-        <div class="browse-name">${esc(r.title)}</div>
+        <div class="browse-name">${esc(r.title)} ${r.source==='curseforge'?'<span style="color:var(--accent);font-size:10px">CF</span>':''}</div>
         <div class="browse-desc">${esc(r.description||'')}</div>
         <div class="browse-meta">
           <span>&#11015; ${formatNum(r.downloads)}</span>
@@ -391,7 +408,7 @@ async function searchBrowse(query, offset) {
         </div>
       </div>
       <div class="browse-actions">
-        <button class="btn-green" onclick="browseInstall('${r.slug}','${esc(r.title)}')">Installieren</button>
+        <button class="btn-green" onclick="browseInstall('${r.slug}','${esc(r.title)}','${r.source||'modrinth'}','${r.cfId||''}')">Installieren</button>
       </div>
     </div>
   `).join('');
@@ -403,13 +420,12 @@ async function searchBrowse(query, offset) {
 }
 window.loadMoreBrowse = function(offset) { searchBrowse(browseQuery, offset); };
 
-window.browseInstall = async function(slug, title) {
+window.browseInstall = async function(slug, title, source, cfId) {
   const instances = await window.api.getInstances();
   if (instances.length === 0) { toast('Erstelle zuerst eine Instanz!'); return; }
-  if (instances.length === 1) { await installToInstance(slug, title, instances[0]); return; }
-  // Multiple instances - show picker
+  if (instances.length === 1) { await installToInstance(slug, title, instances[0], source, cfId); return; }
   showInstancePicker(instances, async (inst) => {
-    await installToInstance(slug, title, inst);
+    await installToInstance(slug, title, inst, source, cfId);
   });
 };
 
@@ -430,10 +446,15 @@ function showInstancePicker(instances, callback) {
   });
 }
 
-async function installToInstance(slug, title, inst) {
+async function installToInstance(slug, title, inst, source, cfId) {
   toast(title+' wird zu "'+inst.name+'" hinzugefuegt...');
-  const r = await window.api.addToInstance(inst.id, slug, browseType);
-  if (r.success) toast(esc(title)+' in "'+esc(inst.name)+'" installiert!');
+  let r;
+  if (source === 'curseforge' && cfId) {
+    r = await window.api.addCurseForge(inst.id, cfId, browseType);
+  } else {
+    r = await window.api.addToInstance(inst.id, slug, browseType);
+  }
+  if (r.success) toast(title+' in "'+inst.name+'" installiert!');
   else toast('Fehler: '+r.error);
 }
 

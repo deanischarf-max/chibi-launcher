@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('api', {
   removeFromInstance: (id, file, type) => ipcRenderer.invoke('remove-from-instance', id, file, type),
   // Modrinth
   searchModrinth: (type, query, gameVersion, offset) => ipcRenderer.invoke('search-modrinth', type, query, gameVersion, offset),
+  searchCurseForge: (type, query, gameVersion, offset) => ipcRenderer.invoke('search-curseforge', type, query, gameVersion, offset),
+  addCurseForge: (instId, cfId, type) => ipcRenderer.invoke('add-curseforge-to-instance', instId, cfId, type),
   getCosmetics: () => ipcRenderer.invoke('get-cosmetics'),
   getOwnedCosmetics: () => ipcRenderer.invoke('get-owned-cosmetics'),
   getEquippedCosmetics: () => ipcRenderer.invoke('get-equipped-cosmetics'),

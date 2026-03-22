@@ -207,6 +207,10 @@
         <div class="tab-header">
           <h2>Durchsuchen</h2>
         </div>
+        <div class="platform-tabs" style="display:flex;gap:8px;margin-bottom:10px">
+          <button class="src-btn active" id="btn-platform-modrinth" onclick="switchPlatform('modrinth')">Modrinth</button>
+          <button class="src-btn" id="btn-platform-curseforge" onclick="switchPlatform('curseforge')">CurseForge</button>
+        </div>
         <div class="source-tabs">
           <button class="src-btn active" data-btype="modpack">Modpacks</button>
           <button class="src-btn" data-btype="mod">Mods</button>
@@ -214,7 +218,7 @@
           <button class="src-btn" data-btype="shader">Shaders</button>
         </div>
         <div class="search-bar" style="margin-bottom:16px">
-          <input type="text" id="browse-search" placeholder="Suchen auf Modrinth..." autocomplete="off">
+          <input type="text" id="browse-search" placeholder="Suchen..." autocomplete="off">
           <button class="btn btn-primary btn-sm" id="browse-search-btn">Suchen</button>
         </div>
         <div class="browse-grid" id="browse-grid"><span class="dim">Laden...</span></div>
