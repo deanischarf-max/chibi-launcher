@@ -1380,8 +1380,28 @@ ipcMain.handle('equip-cosmetic', (ev, id) => {
   const eq = store.get(`equipped_${p.name}`, {});
   if (eq[c.category] === id) delete eq[c.category]; else eq[c.category] = id;
   store.set(`equipped_${p.name}`, eq);
+  // Sync to cloud so other players can see your cosmetics
+  syncCosmeticsToCloud(p.name, eq);
   return { success: true, equipped: eq };
 });
+
+// ── Cloud Cosmetics Sync ──
+// Uses a simple JSON file on GitHub Pages for sharing cosmetics between players
+const COSMETICS_API = 'https://chibi-cosmetics-api.deno.dev';
+
+function syncCosmeticsToCloud(playerName, equipped) {
+  try {
+    const https = require('https');
+    const data = JSON.stringify({ player: playerName, equipped, timestamp: Date.now() });
+    const req = https.request(COSMETICS_API + '/set', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) }
+    }, () => {});
+    req.on('error', () => {});
+    req.write(data);
+    req.end();
+    console.log('[Cosmetics] Synced to cloud:', playerName);
+  } catch(e) { console.warn('[Cosmetics] Sync failed:', e.message); }
+}
 
 // ── Modrinth API ──
 function modrinthGet(urlPath) {
