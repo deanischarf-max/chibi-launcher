@@ -1,6 +1,6 @@
 {
   "name": "chibi-launcher",
-  "version": "1.5.5",
+  "version": "1.6.0",
   "description": "Chibi.art Minecraft Launcher",
   "main": "main.js",
   "scripts": {
@@ -13,7 +13,8 @@
   "license": "MIT",
   "dependencies": {
     "electron-updater": "^6.8.3",
-    "minecraft-launcher-core": "^3.18.1"
+    "minecraft-launcher-core": "^3.18.1",
+    "skinview3d": "^3.1.0"
   },
   "devDependencies": {
     "electron": "^33.0.0",

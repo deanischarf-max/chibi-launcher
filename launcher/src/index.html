@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Chibi Launcher</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/skinview3d@3.1.0/bundles/skinview3d.bundle.js"></script>
 </head>
 <body>
   <div class="titlebar">
@@ -222,6 +223,16 @@
       <!-- Cosmetics -->
       <div class="tab" id="tab-cosmetics">
         <div class="cosm-header"><h2>Cosmetics Shop</h2><div class="coins-big">&#129689; <span id="shop-coins">0</span> Coins</div></div>
+        <div class="cosm-viewer-row">
+          <div class="cosm-viewer-box" id="skin-viewer-box">
+            <canvas id="skin-viewer" width="220" height="320"></canvas>
+            <div class="cosm-viewer-label dim" id="cosm-equipped-label">Ziehe um zu drehen</div>
+          </div>
+          <div class="cosm-viewer-info">
+            <div class="cosm-viewer-name" id="cosm-viewer-name">Kein Cosmetic ausgeruestet</div>
+            <div class="cosm-viewer-desc dim" id="cosm-viewer-desc">Waehle ein Cosmetic aus dem Shop</div>
+          </div>
+        </div>
         <div class="cat-tabs">
           <button class="cat-btn active" data-cat="capes">Capes</button>
           <button class="cat-btn" data-cat="hats">Huete</button>

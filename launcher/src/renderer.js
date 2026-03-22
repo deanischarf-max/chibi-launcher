@@ -210,6 +210,7 @@ async function showMain() {
   cosmetics=await window.api.getCosmetics(); ownedCosmetics=await window.api.getOwnedCosmetics(); equippedCosmetics=await window.api.getEquippedCosmetics();
   updateCoins(await window.api.getCoins()); renderCosmetics(); renderInstances(); updateMcAccount();
   searchBrowse('');
+  initSkinViewer();
 }
 
 function updateCoins(n) { document.getElementById('coins').textContent=n.toLocaleString('de-DE'); document.getElementById('shop-coins').textContent=n.toLocaleString('de-DE'); }
@@ -454,7 +455,82 @@ function renderCosmetics() {
     return '<div class="'+cls+'" onclick="cosClick(\''+c.id+'\')"><div class="cosm-icon" style="background:'+grad+'">'+preview+'</div><div class="cosm-name">'+c.name+'</div><div class="cosm-desc">'+c.description+'</div><div class="cosm-foot"><span class="cosm-price">&#x1FA99; '+c.price+'</span>'+badge+'</div></div>';
   }).join('');
 }
-window.cosClick=async function(id){if(!ownedCosmetics.includes(id)){const r=await window.api.buyCosmetic(id);if(r.success){ownedCosmetics.push(id);updateCoins(r.coins);toast('Gekauft!');}else{toast(r.error);return;}}const r=await window.api.equipCosmetic(id);if(r.success){equippedCosmetics=r.equipped;renderCosmetics();const c=cosmetics.find(x=>x.id===id);toast(equippedCosmetics[c.category]===id?c.name+' ausgeruestet!':c.name+' abgelegt.');}};
+window.cosClick=async function(id){
+  if(!ownedCosmetics.includes(id)){const r=await window.api.buyCosmetic(id);if(r.success){ownedCosmetics.push(id);updateCoins(r.coins);toast('Gekauft!');}else{toast(r.error);return;}}
+  const r=await window.api.equipCosmetic(id);
+  if(r.success){
+    equippedCosmetics=r.equipped;renderCosmetics();
+    const c=cosmetics.find(x=>x.id===id);
+    const equipped = equippedCosmetics[c.category]===id;
+    toast(equipped?c.name+' ausgeruestet!':c.name+' abgelegt.');
+    updateSkinViewer(equipped ? c : null);
+  }
+};
+
+// ── 3D Skin Viewer ──
+let skinViewer = null;
+function initSkinViewer() {
+  try {
+    if (!window.skinview3d) { console.warn('skinview3d not loaded'); return; }
+    const canvas = document.getElementById('skin-viewer');
+    if (!canvas) return;
+    const name = (profile && profile.name) || 'Steve';
+    skinViewer = new skinview3d.SkinViewer({
+      canvas: canvas,
+      width: 220,
+      height: 320,
+      skin: 'https://mc-heads.net/skin/' + name,
+    });
+    skinViewer.autoRotate = true;
+    skinViewer.autoRotateSpeed = 0.5;
+    skinViewer.zoom = 0.9;
+    skinViewer.fov = 40;
+    // Enable mouse control (drag to rotate)
+    const ctrl = skinview3d.createOrbitControls(skinViewer);
+    ctrl.enableRotate = true;
+    ctrl.enableZoom = false;
+    ctrl.enablePan = false;
+    // Idle animation
+    skinViewer.animation = new skinview3d.IdleAnimation();
+    console.log('[SkinViewer] Initialized for', name);
+  } catch(e) {
+    console.error('[SkinViewer] Init failed:', e);
+  }
+}
+
+function updateSkinViewer(cosmetic) {
+  if (!skinViewer || !cosmetic) return;
+  try {
+    document.getElementById('cosm-viewer-name').textContent = cosmetic.name;
+    document.getElementById('cosm-viewer-desc').textContent = cosmetic.description;
+    document.getElementById('cosm-equipped-label').textContent = cosmetic.category + ' - ' + cosmetic.name;
+    // For capes, load a cape texture
+    if (cosmetic.category === 'capes') {
+      const col = cosmColor(cosmetic.id);
+      // Create a colored cape texture via canvas
+      const capeCanvas = document.createElement('canvas');
+      capeCanvas.width = 64; capeCanvas.height = 32;
+      const ctx = capeCanvas.getContext('2d');
+      ctx.fillStyle = col;
+      ctx.fillRect(1, 1, 10, 16);
+      // Add some pattern
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(3, 3, 6, 2);
+      ctx.fillRect(4, 7, 4, 2);
+      skinViewer.loadCape(capeCanvas.toDataURL());
+    } else {
+      skinViewer.loadCape(null);
+    }
+    // Animation based on category
+    if (cosmetic.category === 'emotes') {
+      skinViewer.animation = new skinview3d.WalkingAnimation();
+    } else if (cosmetic.category === 'trails' || cosmetic.category === 'mounts') {
+      skinViewer.animation = new skinview3d.RunningAnimation();
+    } else {
+      skinViewer.animation = new skinview3d.IdleAnimation();
+    }
+  } catch(e) { console.warn('[SkinViewer] Update failed:', e); }
+}
 
 function toast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3000);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
