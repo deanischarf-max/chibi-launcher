@@ -924,12 +924,19 @@ async function ensureCosmeticsMod(instId) {
     if (!inst.mods) inst.mods = [];
     let changed = false;
 
-    // Remove old broken ChibiCosmetics particle mod
-    const oldMod = path.join(modsDir, 'ChibiCosmetics-1.0.0.jar');
-    if (fs.existsSync(oldMod)) {
-      try { fs.unlinkSync(oldMod); console.log('[Cosmetics] Removed old ChibiCosmetics JAR'); } catch(e) {}
+    // Install ChibiCosmetics particle mod from GitHub Release
+    const cosmeticsJar = path.join(modsDir, 'ChibiCosmetics-1.0.0.jar');
+    if (!fs.existsSync(cosmeticsJar)) {
+      try {
+        console.log('[Cosmetics] Downloading ChibiCosmetics mod...');
+        await downloadFile('https://github.com/deanischarf-max/chibi-launcher/releases/latest/download/ChibiCosmetics-1.0.0.jar', cosmeticsJar);
+        console.log('[Cosmetics] Installed ChibiCosmetics');
+        if (!inst.mods.some(m => m.name === 'chibi-cosmetics')) {
+          inst.mods.push({ name: 'chibi-cosmetics', file: 'ChibiCosmetics-1.0.0.jar', title: 'Chibi Cosmetics', icon: '', system: true });
+          changed = true;
+        }
+      } catch(e) { console.warn('[Cosmetics] ChibiCosmetics download failed:', e.message); }
     }
-    inst.mods = inst.mods.filter(m => m.name !== 'chibi-cosmetics');
 
     for (const cosmMod of COSMETICS_MODS) {
       // Skip if already installed
