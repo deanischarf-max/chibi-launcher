@@ -168,7 +168,11 @@
               </div>
             </div>
             <div class="browse-grid" id="inst-mod-results"><span class="dim">Suche nach Mods...</span></div>
-            <h3 style="margin-top:20px">Installierte Mods</h3>
+            <div style="display:flex;gap:8px;margin-top:16px;align-items:center">
+              <h3>Installierte Mods</h3>
+              <button class="btn btn-ghost btn-sm" id="btn-open-mods-folder" style="margin-left:auto">Mods-Ordner oeffnen</button>
+              <button class="btn btn-ghost btn-sm" id="btn-refresh-mods">Aktualisieren</button>
+            </div>
             <div class="installed-list" id="inst-mod-list"><span class="dim">Keine Mods</span></div>
           </div>
 
@@ -182,7 +186,10 @@
               </div>
             </div>
             <div class="browse-grid" id="inst-rp-results"><span class="dim">Suche nach Resource Packs...</span></div>
-            <h3 style="margin-top:20px">Installierte Resource Packs</h3>
+            <div style="display:flex;gap:8px;margin-top:16px;align-items:center">
+              <h3>Installierte Resource Packs</h3>
+              <button class="btn btn-ghost btn-sm" onclick="openFolder('resourcepacks')" style="margin-left:auto">Ordner oeffnen</button>
+            </div>
             <div class="installed-list" id="inst-rp-list"><span class="dim">Keine Resource Packs</span></div>
           </div>
 

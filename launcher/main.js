@@ -473,6 +473,41 @@ app.whenReady().then(() => {
     return true;
   });
 
+  // Open instance folder (mods, resourcepacks, shaders)
+  ipcMain.handle('open-instance-folder', (ev, instId, subdir) => {
+    const dir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, subdir || 'mods');
+    fs.mkdirSync(dir, { recursive: true });
+    shell.openPath(dir);
+    return true;
+  });
+
+  // Scan instance folder for manually added files
+  ipcMain.handle('scan-instance-mods', (ev, instId) => {
+    const instances = store.get('instances', []);
+    const inst = instances.find(i => i.id === instId);
+    if (!inst) return [];
+
+    const modsDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, 'mods');
+    if (!fs.existsSync(modsDir)) return [];
+
+    const filesOnDisk = fs.readdirSync(modsDir).filter(f => f.endsWith('.jar'));
+    const tracked = (inst.mods || []).map(m => m.file);
+    let changed = false;
+
+    // Add untracked JARs to instance data
+    for (const file of filesOnDisk) {
+      if (!tracked.includes(file)) {
+        if (!inst.mods) inst.mods = [];
+        inst.mods.push({ name: file.replace('.jar', ''), file, title: file.replace('.jar', '').replace(/-/g, ' '), icon: '' });
+        changed = true;
+        console.log('[Instance] Found manually added mod:', file);
+      }
+    }
+
+    if (changed) store.set('instances', instances);
+    return inst.mods || [];
+  });
+
   // ── Modrinth-Style Auto-Update ──
   ipcMain.handle('check-update', async () => {
     try {

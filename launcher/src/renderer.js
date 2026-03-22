@@ -117,6 +117,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Instance tabs
   document.querySelectorAll('.inst-tab').forEach(b => b.onclick = () => { document.querySelectorAll('.inst-tab').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.querySelectorAll('.inst-panel').forEach(p=>p.classList.remove('active')); document.getElementById('ipanel-'+b.dataset.itab).classList.add('active'); });
 
+  // Open folder buttons
+  document.getElementById('btn-open-mods-folder').onclick = () => { if (currentInstance) window.api.openInstanceFolder(currentInstance.id, 'mods'); };
+  document.getElementById('btn-refresh-mods').onclick = async () => {
+    if (!currentInstance) return;
+    await window.api.scanInstanceMods(currentInstance.id);
+    currentInstance = (await window.api.getInstances()).find(i => i.id === currentInstance.id);
+    renderInstanceContent();
+    toast('Mod-Liste aktualisiert!');
+  };
+
   // Instance mod/rp/shader search
   document.getElementById('inst-mod-search-btn').onclick = () => searchForInstance('mod', document.getElementById('inst-mod-search').value, 'inst-mod-results');
   document.getElementById('inst-mod-search').onkeydown = e => { if(e.key==='Enter') document.getElementById('inst-mod-search-btn').click(); };
@@ -564,6 +574,8 @@ function updateSkinViewer(cosmetic) {
     }
   } catch(e) { console.warn('[SkinViewer] Update failed:', e); }
 }
+
+window.openFolder = function(sub) { if (currentInstance) window.api.openInstanceFolder(currentInstance.id, sub); };
 
 function toast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3000);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}

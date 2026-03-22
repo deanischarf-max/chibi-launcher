@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('api', {
   onLaunchProgress: (cb) => ipcRenderer.on('launch-progress', (_, d) => cb(d)),
   // Utils
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  openInstanceFolder: (id, sub) => ipcRenderer.invoke('open-instance-folder', id, sub),
+  scanInstanceMods: (id) => ipcRenderer.invoke('scan-instance-mods', id),
   // Update
   checkUpdate: () => ipcRenderer.invoke('check-update'),
   downloadUpdate: (url) => ipcRenderer.invoke('download-update', url),
