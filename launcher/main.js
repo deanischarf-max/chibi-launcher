@@ -1392,9 +1392,15 @@ function saveCosmeticsForMod(playerName, equipped) {
   try {
     const mcRoot = path.join(app.getPath('appData'), '.chibi-minecraft');
     fs.mkdirSync(mcRoot, { recursive: true });
+    const filePath = path.join(mcRoot, 'chibi-cosmetics.json');
+    // Remove if it's accidentally a directory
+    try {
+      const stat = fs.statSync(filePath);
+      if (stat.isDirectory()) { fs.rmSync(filePath, { recursive: true }); }
+    } catch(e) {}
     const data = { player: playerName, equipped: equipped, timestamp: Date.now() };
-    fs.writeFileSync(path.join(mcRoot, 'chibi-cosmetics.json'), JSON.stringify(data, null, 2));
-    console.log('[Cosmetics] Saved to', path.join(mcRoot, 'chibi-cosmetics.json'));
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    console.log('[Cosmetics] Saved to', filePath, JSON.stringify(equipped));
   } catch(e) { console.warn('[Cosmetics] Save failed:', e.message); }
 }
 
