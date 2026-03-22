@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('api', {
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   openInstanceFolder: (id, sub) => ipcRenderer.invoke('open-instance-folder', id, sub),
   scanInstanceMods: (id) => ipcRenderer.invoke('scan-instance-mods', id),
+  getChibiMods: () => ipcRenderer.invoke('get-chibi-mods'),
+  installChibiMod: (instId, modId) => ipcRenderer.invoke('install-chibi-mod', instId, modId),
   // Update
   checkUpdate: () => ipcRenderer.invoke('check-update'),
   downloadUpdate: (url) => ipcRenderer.invoke('download-update', url),

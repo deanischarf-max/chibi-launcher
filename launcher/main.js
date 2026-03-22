@@ -508,6 +508,63 @@ app.whenReady().then(() => {
     return inst.mods || [];
   });
 
+  // ── Chibi Mods ──
+  const CHIBI_MODS = [
+    { id: 'chibi-cheats', name: 'Chibi Cheats', desc: 'Cheat Client mit 90+ Modulen (KillAura, Xray, Flight, etc.)', url: 'https://packs.chibi.art/chibi-cheats-1.0.0.jar', file: 'chibi-cheats-1.0.0.jar', requires: ['fabric-api'] },
+    { id: 'fps-opt', name: 'FPS Optimizer', desc: 'Rendering-Optimierung mit 100+ Einstellungen. F8 GUI.', url: 'https://packs.chibi.art/fps-opt-1.0.0.jar', file: 'fps-opt-1.0.0.jar', requires: ['fabric-api'] },
+    { id: 'stack-opt', name: 'Stack Optimizer', desc: 'Smart Inventory Fill - Shift+Rechtsklick fuellt nur bestehende Stacks.', url: 'https://packs.chibi.art/stack-opt-1.0.0.jar', file: 'stack-opt-1.0.0.jar', requires: ['fabric-api'] },
+    { id: 'chibi-meteor', name: 'Chibi Meteor Addon', desc: 'Meteor Client Addon: CombatBot, MaceBot, ChunkReveal, AutoMLG.', url: 'https://packs.chibi.art/chibi-meteor-addon-1.0.0.jar', file: 'chibi-meteor-addon-1.0.0.jar', requires: ['fabric-api'] },
+  ];
+
+  ipcMain.handle('get-chibi-mods', () => CHIBI_MODS);
+
+  ipcMain.handle('install-chibi-mod', async (ev, instId, modId) => {
+    try {
+      const instances = store.get('instances', []);
+      const inst = instances.find(i => i.id === instId);
+      if (!inst) return { success: false, error: 'Instanz nicht gefunden' };
+      const mod = CHIBI_MODS.find(m => m.id === modId);
+      if (!mod) return { success: false, error: 'Mod nicht gefunden' };
+
+      const modsDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, 'mods');
+      fs.mkdirSync(modsDir, { recursive: true });
+      if (!inst.mods) inst.mods = [];
+
+      // Check if already installed
+      if (inst.mods.some(m => m.file === mod.file)) {
+        return { success: false, error: 'Bereits installiert' };
+      }
+
+      // Download mod
+      await downloadFile(mod.url, path.join(modsDir, mod.file));
+      inst.mods.push({ name: mod.id, file: mod.file, title: mod.name, icon: '' });
+
+      // Auto-install Fabric API if needed
+      if (mod.requires && mod.requires.includes('fabric-api')) {
+        const hasFabricApi = inst.mods.some(m => m.name === 'fabric-api' || m.file.toLowerCase().includes('fabric-api'));
+        if (!hasFabricApi) {
+          try {
+            let apiVersions = await modrinthGet('/project/fabric-api/version?game_versions=["' + inst.version + '"]&loaders=["fabric"]');
+            if (!apiVersions || apiVersions.length === 0) apiVersions = await modrinthGet('/project/fabric-api/version?loaders=["fabric"]');
+            if (apiVersions && apiVersions.length > 0) {
+              const apiFile = (apiVersions[0].files.find(f => f.primary)) || apiVersions[0].files[0];
+              if (apiFile) {
+                await downloadFile(apiFile.url, path.join(modsDir, apiFile.filename));
+                inst.mods.push({ name: 'fabric-api', file: apiFile.filename, title: 'Fabric API', icon: '', system: true });
+              }
+            }
+          } catch(e) { console.warn('[ChibiMods] Fabric API install failed:', e.message); }
+        }
+      }
+
+      // Auto-upgrade to fabric
+      if (inst.loader === 'vanilla') inst.loader = 'fabric';
+
+      store.set('instances', instances);
+      return { success: true };
+    } catch(e) { return { success: false, error: e.message }; }
+  });
+
   // ── Modrinth-Style Auto-Update ──
   ipcMain.handle('check-update', async () => {
     try {

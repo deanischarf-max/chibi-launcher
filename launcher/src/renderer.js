@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   for (let i = 0; i < 30; i++) { const p = document.createElement('div'); p.className = 'particle'; p.style.left = Math.random()*100+'%'; p.style.animationDelay = Math.random()*6+'s'; p.style.animationDuration = (4+Math.random()*4)+'s'; const s=(2+Math.random()*4)+'px'; p.style.width=p.style.height=s; pc.appendChild(p); }
 
   // Nav
-  document.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => { document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.getElementById('tab-'+b.dataset.tab).classList.add('active'); });
+  document.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => { document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.getElementById('tab-'+b.dataset.tab).classList.add('active'); if(b.dataset.tab==='chibi') renderChibiMods(); });
   document.querySelectorAll('.cat-btn').forEach(b => b.onclick = () => { document.querySelectorAll('.cat-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); currentCat=b.dataset.cat; renderCosmetics(); });
 
   // Auth
@@ -232,6 +232,7 @@ async function showMain() {
   cosmetics=await window.api.getCosmetics(); ownedCosmetics=await window.api.getOwnedCosmetics(); equippedCosmetics=await window.api.getEquippedCosmetics();
   updateCoins(await window.api.getCoins()); renderCosmetics(); renderInstances(); updateMcAccount();
   searchBrowse('');
+  renderChibiMods();
   initSkinViewer();
 }
 
@@ -482,6 +483,50 @@ async function updateMcAccount() {
     btn.onclick=async()=>{btn.textContent='Anmelden...';btn.disabled=true;const r=await window.api.mcLogin();if(r.success){toast('Verknuepft: '+r.name);updateMcAccount();}else{toast('Fehler: '+r.error);btn.textContent='Microsoft Account verknuepfen';btn.disabled=false;}};
   }
 }
+
+// ── Chibi Mods ──
+async function renderChibiMods() {
+  const grid = document.getElementById('chibi-mods-grid');
+  if (!grid) return;
+  const mods = await window.api.getChibiMods();
+  const instances = await window.api.getInstances();
+
+  grid.innerHTML = mods.map(m => {
+    // Check if installed in any instance
+    const installed = instances.some(inst => (inst.mods || []).some(im => im.file === m.file));
+    return `<div class="browse-card">
+      <div class="browse-info">
+        <div class="browse-name">${esc(m.name)}</div>
+        <div class="browse-desc">${esc(m.desc)}</div>
+        <div class="browse-meta"><span>Fabric Mod</span><span>Auto Fabric API</span></div>
+      </div>
+      <div class="browse-actions">
+        ${installed
+          ? '<button class="btn-green" disabled style="opacity:.6;cursor:default">Hinzugefuegt</button>'
+          : '<button class="btn-green" onclick="installChibi(\''+m.id+'\',\''+esc(m.name)+'\')">Installieren</button>'
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.installChibi = async function(modId, name) {
+  const instances = await window.api.getInstances();
+  if (instances.length === 0) { toast('Erstelle zuerst eine Instanz!'); return; }
+  if (instances.length === 1) {
+    toast(name + ' wird installiert...');
+    const r = await window.api.installChibiMod(instances[0].id, modId);
+    if (r.success) { toast(name + ' installiert!'); renderChibiMods(); }
+    else toast(r.error);
+    return;
+  }
+  showInstancePicker(instances, async (inst) => {
+    toast(name + ' wird installiert...');
+    const r = await window.api.installChibiMod(inst.id, modId);
+    if (r.success) { toast(name + ' installiert!'); renderChibiMods(); }
+    else toast(r.error);
+  });
+};
 
 // ── Cosmetics ──
 function renderCosmetics() {
