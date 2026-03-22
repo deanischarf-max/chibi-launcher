@@ -143,7 +143,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Events
   window.api.onCoinsUpdated(d => { updateCoins(d.coins); if(d.earned>0) toast('+'+d.earned+' Coins!'); document.getElementById('btn-play').classList.remove('hidden'); document.getElementById('play-status').classList.add('hidden'); });
-  window.api.onLaunchError(e => { document.getElementById('btn-play').classList.remove('hidden'); document.getElementById('play-status').classList.add('hidden'); document.getElementById('error-log').textContent=e; document.getElementById('error-log').classList.remove('hidden'); });
+  window.api.onLaunchError(e => {
+    document.getElementById('btn-play').classList.remove('hidden');
+    document.getElementById('play-status').classList.add('hidden');
+    const el = document.getElementById('error-log');
+    el.innerHTML = '<div class="crash-header"><span>Minecraft ist abgestuerzt</span><button class="btn btn-sm btn-primary" id="btn-copy-crash">Crash kopieren</button></div><pre class="crash-text">' + esc(String(e)) + '</pre>';
+    el.classList.remove('hidden');
+    document.getElementById('btn-copy-crash').onclick = () => {
+      navigator.clipboard.writeText(String(e)).then(() => {
+        document.getElementById('btn-copy-crash').textContent = 'Kopiert!';
+        setTimeout(() => { document.getElementById('btn-copy-crash').textContent = 'Crash kopieren'; }, 2000);
+      });
+    };
+  });
   window.api.onLaunchProgress(p => { if(p.type) document.getElementById('play-status').innerHTML='<div class="spinner"></div><span>'+p.type+' ('+Math.round((p.task/p.total)*100)+'%)</span>'; });
   // ── MODRINTH-STYLE UPDATE CHECK ──
   const statusEl = document.getElementById('update-status');
