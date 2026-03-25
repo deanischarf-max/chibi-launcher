@@ -1692,7 +1692,7 @@ function downloadFile(url, dest) {
 ipcMain.handle('download-meteor', async (ev, instanceId) => {
   try {
     const p = store.get('currentUser');
-    if (!p || !OWNER_USERS.includes(p.name)) return { success: false, error: 'Nicht autorisiert' };
+    if (!p || !OWNER_USERS.map(u=>u.toLowerCase()).includes(p.name.toLowerCase())) return { success: false, error: 'Nicht autorisiert' };
 
     const instances = store.get('instances', []);
     const inst = instances.find(i => i.id === instanceId);
