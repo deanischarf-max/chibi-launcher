@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('api', {
   getCoins: () => ipcRenderer.invoke('get-coins'),
   buyCosmetic: (id) => ipcRenderer.invoke('buy-cosmetic', id),
   equipCosmetic: (id) => ipcRenderer.invoke('equip-cosmetic', id),
+  downloadMeteor: (instanceId) => ipcRenderer.invoke('download-meteor', instanceId),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (s) => ipcRenderer.invoke('save-settings', s),
   onCoinsUpdated: (cb) => ipcRenderer.on('coins-updated', (_, d) => cb(d)),

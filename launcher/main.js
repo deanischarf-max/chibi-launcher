@@ -1688,6 +1688,58 @@ function downloadFile(url, dest) {
   });
 }
 
+// ── Meteor Client (Owner only) ──
+ipcMain.handle('download-meteor', async (ev, instanceId) => {
+  try {
+    const p = store.get('currentUser');
+    if (!p || !OWNER_USERS.includes(p.name)) return { success: false, error: 'Nicht autorisiert' };
+
+    const instances = store.get('instances', []);
+    const inst = instances.find(i => i.id === instanceId);
+    if (!inst) return { success: false, error: 'Instanz nicht gefunden' };
+
+    const mcRoot = path.join(process.env.APPDATA || path.join(os.homedir(), '.minecraft'), '.chibi-minecraft', 'instances', instanceId);
+    const modsDir = path.join(mcRoot, 'mods');
+    if (!fs.existsSync(modsDir)) fs.mkdirSync(modsDir, { recursive: true });
+
+    // Meteor Client von GitHub holen (neuestes Release)
+    const https = require('https');
+    const fetchJson = (url) => new Promise((resolve, reject) => {
+      https.get(url, { headers: { 'User-Agent': 'ChibiLauncher/1.0' } }, res => {
+        if (res.statusCode === 301 || res.statusCode === 302) {
+          return fetchJson(res.headers.location).then(resolve).catch(reject);
+        }
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { reject(e); } });
+      }).on('error', reject);
+    });
+
+    const release = await fetchJson('https://api.github.com/repos/MeteorDevelopment/meteor-client/releases/latest');
+    const jar = release.assets.find(a => a.name.endsWith('.jar'));
+    if (!jar) return { success: false, error: 'Kein JAR in GitHub Release gefunden' };
+
+    // Alte Meteor JARs entfernen
+    for (const f of fs.readdirSync(modsDir)) {
+      if (f.toLowerCase().startsWith('meteor-client') && f.endsWith('.jar')) {
+        fs.unlinkSync(path.join(modsDir, f));
+      }
+    }
+
+    // Download
+    await downloadFile(jar.browser_download_url, path.join(modsDir, jar.name));
+
+    // Mod in Instanz tracken
+    inst.mods = (inst.mods || []).filter(m => !m.name.toLowerCase().startsWith('meteor'));
+    inst.mods.push({ name: 'Meteor Client', file: jar.name, slug: 'meteor-client' });
+    store.set('instances', instances);
+
+    return { success: true, message: 'Meteor Client ' + release.tag_name + ' installiert!' };
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+});
+
 // ── Settings ──
 ipcMain.handle('get-settings', () => store.get('settings', { ram: '4', javaPath: '' }));
 ipcMain.handle('save-settings', (ev, s) => { store.set('settings', s); return true; });

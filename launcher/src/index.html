@@ -57,6 +57,7 @@
         <button class="nav-btn" data-tab="browse">&#128270; Durchsuchen</button>
         <button class="nav-btn" data-tab="chibi">&#128142; Chibi Mods</button>
         <button class="nav-btn" data-tab="cosmetics">&#128081; Cosmetics</button>
+        <button class="nav-btn hidden" data-tab="meteor" id="nav-meteor">&#9889; Meteor</button>
         <button class="nav-btn" data-tab="settings">&#9881; Einstellungen</button>
       </nav>
       <div class="coins-box"><span class="coin-ico">&#129689;</span><span id="coins">0</span></div>
@@ -269,6 +270,21 @@
           <button class="cat-btn" data-cat="titles">Titel</button>
         </div>
         <div class="cosm-grid" id="cosm-grid"></div>
+      </div>
+
+      <!-- Meteor (Owner only) -->
+      <div class="tab" id="tab-meteor">
+        <div class="tab-header">
+          <h2>&#9889; Meteor Client</h2>
+        </div>
+        <p style="color:var(--dim);margin-bottom:16px">Meteor Client + Chibi Addon in eine Instanz installieren.</p>
+        <div style="margin-bottom:16px">
+          <label style="color:var(--text);margin-bottom:8px;display:block">Ziel-Instanz</label>
+          <select id="meteor-instance" style="width:100%;max-width:300px;padding:8px;border-radius:6px;background:var(--surface);color:var(--text);border:1px solid var(--border)"></select>
+        </div>
+        <button class="btn btn-primary" id="btn-meteor-download">&#11015; Meteor Client herunterladen</button>
+        <div class="hidden" id="meteor-status" style="margin-top:12px;color:var(--dim);display:flex;align-items:center;gap:8px"><div class="spinner"></div><span id="meteor-status-text">Wird heruntergeladen...</span></div>
+        <div id="meteor-result" style="margin-top:12px"></div>
       </div>
 
       <!-- Settings -->

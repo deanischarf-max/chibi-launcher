@@ -234,6 +234,8 @@ async function showMain() {
   searchBrowse('');
   renderChibiMods();
   initSkinViewer();
+  // Meteor Tab nur fuer Owner
+  if(profile.isOwner) document.getElementById('nav-meteor').classList.remove('hidden');
 }
 
 function updateCoins(n) { document.getElementById('coins').textContent=n.toLocaleString('de-DE'); document.getElementById('shop-coins').textContent=n.toLocaleString('de-DE'); }
@@ -634,6 +636,32 @@ window.renameInstance = async function() {
   document.getElementById('inst-detail-name').textContent = newName;
   toast('Instanz umbenannt zu "' + newName + '"');
 };
+
+// ── Meteor Client (Owner only) ──
+document.getElementById('btn-meteor-download').onclick = async () => {
+  const sel = document.getElementById('meteor-instance');
+  if (!sel.value) return toast('Erstelle zuerst eine Instanz!');
+  document.getElementById('btn-meteor-download').disabled = true;
+  document.getElementById('meteor-status').classList.remove('hidden');
+  document.getElementById('meteor-result').innerHTML = '';
+  const r = await window.api.downloadMeteor(sel.value);
+  document.getElementById('meteor-status').classList.add('hidden');
+  document.getElementById('btn-meteor-download').disabled = false;
+  if (r.success) {
+    document.getElementById('meteor-result').innerHTML = '<span style="color:#4f4">&#10003; ' + esc(r.message) + '</span>';
+    toast('Meteor Client installiert!');
+  } else {
+    document.getElementById('meteor-result').innerHTML = '<span style="color:#f44">&#10007; ' + esc(r.error) + '</span>';
+    toast('Fehler: ' + r.error);
+  }
+};
+
+// Meteor Instanz-Dropdown aktualisieren wenn Tab geoeffnet wird
+document.querySelector('[data-tab="meteor"]').addEventListener('click', async () => {
+  const instances = await window.api.getInstances();
+  const sel = document.getElementById('meteor-instance');
+  sel.innerHTML = instances.map(i => `<option value="${i.id}">${esc(i.name)} (${i.version})</option>`).join('');
+});
 
 function toast(msg){const t=document.getElementById('toast');document.getElementById('toast-msg').textContent=msg;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3000);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
