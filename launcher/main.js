@@ -510,10 +510,9 @@ app.whenReady().then(() => {
 
   // ── Chibi Mods ──
   const CHIBI_MODS = [
-    { id: 'chibi-cheats', name: 'Chibi Cheats', desc: 'Cheat Client mit 90+ Modulen (KillAura, Xray, Flight, etc.)', url: 'https://packs.chibi.art/chibi-cheats-1.0.0.jar', file: 'chibi-cheats-1.0.0.jar', requires: ['fabric-api'] },
     { id: 'fps-opt', name: 'FPS Optimizer', desc: 'Rendering-Optimierung mit 100+ Einstellungen. F8 GUI.', url: 'https://packs.chibi.art/fps-opt-1.0.0.jar', file: 'fps-opt-1.0.0.jar', requires: ['fabric-api'] },
     { id: 'stack-opt', name: 'Stack Optimizer', desc: 'Smart Inventory Fill - Shift+Rechtsklick fuellt nur bestehende Stacks.', url: 'https://packs.chibi.art/stack-opt-1.0.0.jar', file: 'stack-opt-1.0.0.jar', requires: ['fabric-api'] },
-    { id: 'chibi-meteor', name: 'Chibi Meteor Addon', desc: 'Meteor Client Addon: CombatBot, MaceBot, ChunkReveal, AutoMLG.', url: 'https://packs.chibi.art/chibi-meteor-addon-1.0.0.jar', file: 'chibi-meteor-addon-1.0.0.jar', requires: ['fabric-api'] },
+    { id: 'chibi-tiers', name: 'Chibi Tiers', desc: 'Zeigt PvP-Tier-Tags ueber Spielernamen. F9 Toggle.', url: 'https://packs.chibi.art/ChibiTiers-1.0.0.jar', file: 'ChibiTiers-1.0.0.jar', requires: ['fabric-api'] },
   ];
 
   ipcMain.handle('get-chibi-mods', () => CHIBI_MODS);
@@ -1060,6 +1059,39 @@ async function ensureCosmeticsMod(instId) {
   }
 }
 
+async function ensureTiersMod(instId) {
+  try {
+    const instances = store.get('instances', []);
+    const inst = instances.find(i => i.id === instId);
+    if (!inst) return;
+    if (!inst.mods) inst.mods = [];
+    const modsDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, 'mods');
+    fs.mkdirSync(modsDir, { recursive: true });
+
+    // Skip if already installed
+    if (inst.mods.some(m => m.name === 'chibi-tiers')) return;
+
+    const modUrl = 'https://packs.chibi.art/ChibiTiers-1.0.0.jar';
+    const modFile = 'ChibiTiers-1.0.0.jar';
+    const modPath = path.join(modsDir, modFile);
+
+    if (!fs.existsSync(modPath)) {
+      console.log('[Tiers] Auto-installing ChibiTiers...');
+      await downloadFile(modUrl, modPath);
+      console.log('[Tiers] Installed: ' + modPath);
+    }
+
+    inst.mods.push({ name: 'chibi-tiers', file: modFile, title: 'Chibi Tiers', icon: '', system: true });
+
+    // Auto-upgrade to fabric if vanilla
+    if (inst.loader === 'vanilla') inst.loader = 'fabric';
+
+    store.set('instances', instances);
+  } catch(e) {
+    console.warn('[Tiers] Auto-install failed:', e.message);
+  }
+}
+
 // ── Fabric Loader Installation (via official Fabric Installer JAR) ──
 function fabricGet(urlPath) {
   return new Promise((resolve, reject) => {
@@ -1365,6 +1397,9 @@ async function doLaunchGame(p, mcVersion, instId) {
 
     // Auto-install Cosmetics Mod (unsichtbar)
     if (instId) { await ensureCosmeticsMod(instId); }
+
+    // Auto-install Chibi Tiers Mod (PvP Tier-Tags)
+    if (instId) { await ensureTiersMod(instId); }
 
     // Copy instance mods/resourcepacks/shaders into MC game directory
     if (instId) {
