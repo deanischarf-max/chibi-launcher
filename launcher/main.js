@@ -1068,20 +1068,44 @@ async function ensureTiersMod(instId) {
     const modsDir = path.join(app.getPath('appData'), '.chibi-minecraft', 'instances', instId, 'mods');
     fs.mkdirSync(modsDir, { recursive: true });
 
-    // Skip if already installed
-    if (inst.mods.some(m => m.name === 'chibi-tiers')) return;
-
     const modUrl = 'https://packs.chibi.art/ChibiTiers-1.0.0.jar';
     const modFile = 'ChibiTiers-1.0.0.jar';
     const modPath = path.join(modsDir, modFile);
 
+    // Always check if file exists, even if mod list says installed
     if (!fs.existsSync(modPath)) {
       console.log('[Tiers] Auto-installing ChibiTiers...');
       await downloadFile(modUrl, modPath);
       console.log('[Tiers] Installed: ' + modPath);
     }
 
-    inst.mods.push({ name: 'chibi-tiers', file: modFile, title: 'Chibi Tiers', icon: '', system: true });
+    // Add to mod list if not there
+    if (!inst.mods.some(m => m.name === 'chibi-tiers')) {
+      inst.mods.push({ name: 'chibi-tiers', file: modFile, title: 'Chibi Tiers', icon: '', system: true });
+    }
+
+    // Ensure Fabric API is installed (required dependency)
+    const hasFabricApi = inst.mods.some(m => m.name === 'fabric-api' || (m.file && m.file.toLowerCase().includes('fabric-api')));
+    if (!hasFabricApi) {
+      try {
+        const mcVersion = inst.version || '1.21.11';
+        let apiVersions = await modrinthGet('/project/fabric-api/version?game_versions=["' + mcVersion + '"]&loaders=["fabric"]');
+        if (!apiVersions || apiVersions.length === 0) apiVersions = await modrinthGet('/project/fabric-api/version?loaders=["fabric"]');
+        if (apiVersions && apiVersions.length > 0) {
+          const apiFile = (apiVersions[0].files.find(f => f.primary)) || apiVersions[0].files[0];
+          if (apiFile) {
+            const apiPath = path.join(modsDir, apiFile.filename);
+            if (!fs.existsSync(apiPath)) {
+              await downloadFile(apiFile.url, apiPath);
+              console.log('[Tiers] Fabric API installed: ' + apiFile.filename);
+            }
+            if (!inst.mods.some(m => m.name === 'fabric-api')) {
+              inst.mods.push({ name: 'fabric-api', file: apiFile.filename, title: 'Fabric API', icon: '', system: true });
+            }
+          }
+        }
+      } catch(e) { console.warn('[Tiers] Fabric API install failed:', e.message); }
+    }
 
     // Auto-upgrade to fabric if vanilla
     if (inst.loader === 'vanilla') inst.loader = 'fabric';
